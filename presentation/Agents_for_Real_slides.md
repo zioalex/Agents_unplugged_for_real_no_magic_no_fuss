@@ -1,31 +1,51 @@
 ---
 marp: true
+theme: gaia
+paginate: true
+backgroundColor: #fff
+color: #333
 ---
 
+<!-- _class: lead invert -->
+<!-- _header: '' -->
+<!-- _footer: '' -->
 
+# **AI Agents Unplugged**
+## Live, No Magic, No Fuss
 
-# AI Agents Unplugged: Live, No Magic, No Fuss.
+**LangChain · LangFlow · MCP (safe\*) · LangGraph**  
+*25-minute live tour + code*
 
-**LangChain · LangFlow · MCP (safe)**  
-25-minute live tour + code
+**Cop 2025**
+Alessandro Surace - DevSecOps Team
 
-CoP Zurich 2025 - Alessandro Surace
+---
+<!-- _header: Agent's Framework -->
+
+![w:1200](/assets/images/agentic_frameworks_wordcloud_weighted_color_1y_all.png)
 
 ---
 
-![Agents Wordcloud](/assets/images/agentic_frameworks_wordcloud_weighted_color_1y_all.png)
+<!-- _header: Why Agents? -->
+
+## Agents vs. Prompts
+
+**Prompts** are single instructions.  
+**Agents** are autonomous workers that can:
+- **Plan** a sequence of steps.
+- **Use tools** (like code interpreters or APIs).
+- **Observe** outcomes and self-correct.
+- **Complete** the task.
 
 ---
 
-## Why agents (vs prompts)?
-**Tools > Prompts.** Agents plan, call tools, verify, and finish tasks.
+<!-- _header: Agentic Patterns -->
 
----
+## Common Agent Patterns
 
-## Patterns
-- ReAct — think/act/observe
-- Planner/Executor — global plan across steps
-- Graph / multi-agent — parallel skills, routing, shared state
+- **ReAct**: A simple loop of **Re**asoning and **Act**ing. Great for simple, single-tool tasks.
+- **Planner/Executor**: An LLM first creates a multi-step **plan**, then an **executor** carries it out. More robust for complex workflows.
+- **Graph / Multi-Agent**: A state machine where nodes are skills and edges are logic. The most flexible and observable pattern.
 
 <!-- 
 Notes:
@@ -34,13 +54,22 @@ Notes:
 - Graph / multi‑agent: Nodes = skills; edges = routing; shared state; easy to version, test, and add human‑review. Demo LangGraph g3: route (calc vs retrieve) → answer → human_review (interrupt) → accept/reject loop.
 - Trade‑offs: ReAct (simple, fast) vs Planner/Executor (structured, costlier) vs Graph (most control/observability).
 - Transition line: “We’ll start with ReAct, then add routing, then close with human‑in‑the‑loop and MCP tools.”
-
 -->
+
 ---
 
-## LangChain vs LangFlow
-**LangChain** (code-first): LCEL, tests, CI/CD  
-**LangFlow** (visual): DAGs, tweak params, export JSON, REST/MCP endpoints  
+<!-- _header: LangChain vs. LangFlow -->
+
+## LangChain vs. LangFlow
+
+| | **LangChain** | **LangFlow** |
+|---|---|---|
+| **Paradigm** | Code-first (Python/JS) | Visual (Drag & Drop) |
+| **Use Case** | Production, testing, CI/CD | Prototyping, collaboration |
+| **Core** | LCEL, composable chains | Visual DAGs, REST APIs |
+| **Output** | Services, libraries | Exportable JSON flows |
+
+**Key takeaway:** Prototype visually in **LangFlow**, then harden and deploy with **LangChain** for production-grade reliability.
 
 <!-- 
 Presenter notes — LangChain vs LangFlow
@@ -75,68 +104,95 @@ Demo cue
 Takeaway
 - Start visual to align on design, then move stable graphs into code for tests, CI, and hardened security.
 -->
----
-
-# LangChain vs LangGraph
-
-[LangChain vs LangGraph](./langchain-vs-langgraph.svg)
 
 ---
 
-![bg](image-5.png)
+<!-- _header: LangChain vs. LangGraph -->
+
+
+![bg contain](./langchain-vs-langgraph.svg)
 
 ---
-## MCP (Model Context Protocol)
 
-It is a standard way to allow LLMs to interact with external tools "in a safe and controlled manner".
-
-It allows automous agents calling and agents to agents communication.
+![bg contain](image-5.png)
 
 ---
+
+<!-- _header: MCP -->
+
+## MCP (Model-Context-Protocol)
+
+A proposed standard for agents to safely discover and use tools.
+
+- **Goal**: Create a secure "API layer" for LLMs.
+- **How**: Agents request a manifest of available tools, get credentials, and then call them.
+- **Why**: It enables controlled, observable, and secure agent-to-tool and agent-to-agent communication.
+
+---
+
+<!-- _header: Risks & Guardrails -->
 
 ## Risks & Guardrails
 
-**Prompt injection** · **PII/secrets leakage** · **Uncontrolled tool access** · **Model hallucinations** · **Cost escalation** · **Infinite loops** · **Cross-agent privilege escalation** · **Training data poisoning** · **Adversarial prompts** · **Resource exhaustion** · **Data exfiltration** · **Supply chain attacks** · **Model drift** · **Observability blind spots** · **Evaluation gaps**
-
-**Mitigations:** MCP sandboxing · Input validation · Rate limiting · Audit logging · Role-based access · Circuit breakers
-
----
-
-## Live Demo
-1) Build **ReAct** agent (retriever + calculator)  
-2) Call **LangFlow** flow via REST  
-3) Attach **MCP** safe tools
-
----
-![AgentType](image-2.png)
+| Risk | Mitigation |
+|---|---|
+| **Prompt Injection** | Input validation, sandboxing |
+| **Data Leakage** | Role-based access (RBAC), MCP |
+| **Infinite Loops / Cost** | Step limits, circuit breakers |
+| **Hallucinations** | Grounding, retrieval augmentation |
+| **Tool Abuse** | Rate limiting, audit logs |
 
 ---
 
-![AgentType2](image-3.png)
+<!-- _class: invert -->
+<!-- _header: Live Demo -->
+
+## **Live Demo**
+
+1.  Build a **ReAct** agent (Retriever + Calculator).
+2.  Call a **LangFlow** flow via its REST API.
+3.  Secure tool access with **MCP**.
 
 ---
 
-![LangChain Deprecated](image-1.png)
+![bg contain](image-2.png)
 
 ---
 
-# [Prompt Techniques](image-4.png)
-
-![Prompt Techniques](image-4.png)
+![bg contain](image-3.png)
 
 ---
 
-# LangSmith
-
-![LangSmith](image.png)
+![bg contain](image-1.png)
 
 ---
 
-## Closing
-Agents are **tools-first** systems. Ship-ready means versioned graphs, safe tools (MCP), and evaluation & observability.
+![bg contain](image-4.png)
 
 ---
 
-## Links
+![bg contain](image.png)
 
-https://www.promptingguide.ai/techniques
+---
+
+<!-- _class: invert -->
+<!-- _header: Closing Thoughts -->
+
+## Closing Thoughts
+
+- Agents are powerful but not "intelligent"—they are stateful, tool-using programs.
+- Start simple (**ReAct**) and scale complexity as needed (**Graphs**).
+- **Observability** and **guardrails** are not optional.
+
+**Agents are the next layer of abstraction in software.**
+
+---
+
+<!-- _header: Links & Resources -->
+
+## Links & Resources
+
+- **Prompting Guide**: [promptingguide.ai/techniques](https://www.promptingguide.ai/techniques)
+- **AI & Anti-Intelligence**: [psychologytoday.com/.../ai-and-the-architecture-of-anti-intelligence](https://www.psychologytoday.com/us/blog/the-digital-self/202507/ai-and-the-architecture-of-anti-intelligence)
+- **LangChain**: [langchain.com](https://www.langchain.com/)
+- **LangFlow**: [langflow.org](https://langflow.org/)
