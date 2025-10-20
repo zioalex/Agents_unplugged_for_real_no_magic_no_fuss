@@ -30,7 +30,7 @@ Update the file notebooks/config.json with your settings:
 }
 ```
 
-## Offline path (Ollama):
+## Offline path (Ollama) or vllm backend:
 
 Install Ollama and pull a model:
 
@@ -38,8 +38,12 @@ Install Ollama and pull a model:
    ollama pull llama3.1:8b
 ```
 
+```bash
+  vllm serve "swiss-ai/Apertus-8B-Instruct-2509" --gpu-memory-utilization 0.4
+```
+
 ## Run
 1) Open `notebooks/llm_agents_langchain_langflow_demo.ipynb` and set `BACKEND` (OPENAI/OLLAMA).  
 2) Optional — `langflow run --host 127.0.0.1 --port 7860`, then call your flow via REST from the notebook.  
     or `uv run langflow run`
-3) Optional — start MCP server: `python code/mcp_safe_server.py` and attach tools in `notebooks/mcp_addon_minimal.ipynb`.
+3) Optional — start MCP server: `python notebooks/mcp_safe_server.py` and attach tools in `notebooks/mcp_addon_minimal.ipynb`.

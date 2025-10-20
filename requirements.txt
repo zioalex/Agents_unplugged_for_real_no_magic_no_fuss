@@ -10,3 +10,4 @@ mcp[cli]>=0.1
 langchain-mcp-adapters>=0.1
 matplotlib>=3.7
 Pillow>=10.0
+vllm
