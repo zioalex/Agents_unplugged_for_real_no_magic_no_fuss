@@ -8,20 +8,34 @@ This archive contains: slides (Markdown), notebooks, code, and assets.
 - `notebooks/llm_agents_langchain_langflow_demo.ipynb`
 - `notebooks/mcp_addon_minimal.ipynb`
 - `code/mcp_safe_server.py`
-- `assets/images/agentic_frameworks_wordcloud_weighted_color_1y_all.png` (+ transparent)
+- `assets/images/agentic_frameworks_wordcloud_weighted_color_1y_all.png`
 - `requirements.txt`
 
 ## Quick Start
+
 ```bash
 python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
 
-# OpenAI path:
-export OPENAI_API_KEY=YOUR_KEY
+## Configuration
 
-# Offline path (Ollama):
-#   install Ollama and pull a model:
-#   ollama pull llama3.1:8b
+Update the file notebooks/config.json with your settings:
+
+```json
+{
+  "OPENAI_API_BASE": "your_openai_api_base_here",  // e.g., https://api.openai.com/v1
+  "API_KEY": "your_openai_api_key_here", // your OpenAI API key
+  "LANGFLOW_API_KEY": "your_langflow_api_key_here"  // specify the Langflow API key if using Langflow
+}
+```
+
+## Offline path (Ollama):
+
+Install Ollama and pull a model:
+
+```bash
+   ollama pull llama3.1:8b
 ```
 
 ## Run

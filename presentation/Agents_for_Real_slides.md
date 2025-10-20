@@ -16,13 +16,13 @@ color: #333
 **LangChain · LangFlow · MCP (safe\*) · LangGraph**  
 *25-minute live tour + code*
 
-**Cop 2025**
-Alessandro Surace - DevSecOps Team
+**[AI4YOU.SH](https://ai4you.sh)**
+**Alessandro S. © 2025**
 
 ---
 <!-- _header: Agent's Framework -->
 
-![w:1200](/assets/images/agentic_frameworks_wordcloud_weighted_color_1y_all.png)
+![w:1200](imgs/agentic_frameworks_wordcloud_weighted_color_1y_all.png)
 
 ---
 
@@ -110,11 +110,11 @@ Takeaway
 <!-- _header: LangChain vs. LangGraph -->
 
 
-![bg contain](./langchain-vs-langgraph.svg)
+![bg contain](./imgs/langchain-vs-langgraph.svg)
 
 ---
 
-![bg contain](image-5.png)
+![bg contain](imgs/github_mcp_servers.png)
 
 ---
 
@@ -155,23 +155,23 @@ A proposed standard for agents to safely discover and use tools.
 
 ---
 
-![bg contain](image-2.png)
+![bg contain](imgs/prompt_technique_1.png)
 
 ---
 
-![bg contain](image-3.png)
+![bg contain](imgs/prompt_technique_2.png)
 
 ---
 
-![bg contain](image-1.png)
+![bg contain](imgs/langchain_deprecation.png)
 
 ---
 
-![bg contain](image-4.png)
+![bg contain](imgs/prompt_engineering_techniques.png)
 
 ---
 
-![bg contain](image.png)
+![bg contain](imgs/langsmith.png)
 
 ---
 

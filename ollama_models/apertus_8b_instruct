@@ -1,4 +1,4 @@
-FROM /home/asurace/.cache/huggingface/hub/models--swiss-ai--Apertus-8B-Instruct-2509/snapshots/a76c9e6701dafe8dd9b173cee09bc93f2eba3bfc
+FROM ~/.cache/huggingface/hub/models--swiss-ai--Apertus-8B-Instruct-2509/snapshots/a76c9e6701dafe8dd9b173cee09bc93f2eba3bfc
 TEMPLATE """{{ if .System }}<|system|>
 {{ .System }}<|end|>
 {{ end }}{{ if .Prompt }}<|user|>

@@ -9,7 +9,7 @@ OPS = {
     ast.Mod: operator.mod, ast.FloorDiv: operator.floordiv
 }
 def _eval(node):
-    if isinstance(node, ast.Num): return node.n
+    if isinstance(node, ast.Constant): return node.value
     if isinstance(node, ast.BinOp): return OPS[type(node.op)](_eval(node.left), _eval(node.right))
     if isinstance(node, ast.UnaryOp): return OPS[type(node.op)](_eval(node.operand))
     raise ValueError("Unsupported expression")
