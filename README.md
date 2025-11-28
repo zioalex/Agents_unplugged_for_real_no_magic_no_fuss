@@ -31,6 +31,10 @@ bash Miniforge3-Linux-x86_64.sh
 wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh
 bash Miniforge3-MacOSX-$(uname -m).sh
 # Restart your terminal after installation
+
+If you are not setting coda as your default, initialize conda for your shell:
+```bash
+conda_setup
 ```
 
 ### Automated Setup (RECOMMENDED - Fast!)
@@ -62,6 +66,8 @@ make setup-fast  # Same as above
 bash setup.sh       # Old method (30+ min, may hang)
 make setup-old      # Old method via Makefile
 ```
+
+This can take several minutes depending on your internet speed and system.
 
 ### Manual Setup
 
