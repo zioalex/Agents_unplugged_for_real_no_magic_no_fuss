@@ -1,13 +1,17 @@
-.PHONY: help setup setup-gpu setup-cpu clean test jupyter activate
+.PHONY: help setup setup-fast setup-old setup-gpu setup-cpu clean test jupyter activate
 
 help:
 	@echo "Agents Unplugged - Makefile Commands"
 	@echo "====================================="
 	@echo ""
-	@echo "Setup:"
-	@echo "  make setup      - Auto-detect GPU and install appropriate environment"
-	@echo "  make setup-gpu  - Install GPU environment (with CUDA)"
-	@echo "  make setup-cpu  - Install CPU-only environment (lighter)"
+	@echo "Setup (RECOMMENDED - Fast & Reliable):"
+	@echo "  make setup-fast - Fast setup with minimal conda + pip (5-15 min)"
+	@echo "  make setup      - Same as setup-fast (default)"
+	@echo ""
+	@echo "Setup (Old Method - May Hang!):"
+	@echo "  make setup-old  - Old setup script (30+ min, may hang)"
+	@echo "  make setup-gpu  - Full conda GPU environment (may hang!)"
+	@echo "  make setup-cpu  - Full conda CPU environment (may hang!)"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make jupyter    - Start Jupyter notebook server"
@@ -15,21 +19,42 @@ help:
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean      - Remove conda environment"
-	@echo "  make update     - Update environment with latest packages"
+	@echo "  make update     - Update pip packages"
 	@echo ""
 	@echo "Note: After 'make setup', activate the environment with:"
 	@echo "      conda activate agents_unplugged"
 
-setup:
+setup: setup-fast
+
+setup-fast:
+	@bash setup-fast.sh
+
+setup-old:
 	@bash setup.sh
 
 setup-gpu:
-	@command -v mamba >/dev/null 2>&1 && CONDA_CMD=mamba || CONDA_CMD=conda; \
-	$$CONDA_CMD env create -f environment-gpu.yml
+	@echo "WARNING: This may consume a lot of memory and hang!"
+	@echo "Consider using 'make setup-fast' instead."
+	@read -p "Continue anyway? (y/N): " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		command -v mamba >/dev/null 2>&1 && CONDA_CMD=mamba || CONDA_CMD=conda; \
+		$$CONDA_CMD env create -f environment-gpu.yml; \
+	else \
+		echo "Cancelled. Use 'make setup-fast' for a better experience."; \
+	fi
 
 setup-cpu:
-	@command -v mamba >/dev/null 2>&1 && CONDA_CMD=mamba || CONDA_CMD=conda; \
-	$$CONDA_CMD env create -f environment-cpu.yml
+	@echo "WARNING: This may consume a lot of memory and hang!"
+	@echo "Consider using 'make setup-fast' instead."
+	@read -p "Continue anyway? (y/N): " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		command -v mamba >/dev/null 2>&1 && CONDA_CMD=mamba || CONDA_CMD=conda; \
+		$$CONDA_CMD env create -f environment-cpu.yml; \
+	else \
+		echo "Cancelled. Use 'make setup-fast' for a better experience."; \
+	fi
 
 clean:
 	@echo "Removing conda environment 'agents_unplugged'..."
@@ -37,13 +62,12 @@ clean:
 	$$CONDA_CMD env remove -n agents_unplugged -y || true
 
 update:
-	@echo "Updating environment..."
-	@command -v mamba >/dev/null 2>&1 && CONDA_CMD=mamba || CONDA_CMD=conda; \
-	if nvidia-smi >/dev/null 2>&1; then \
-		$$CONDA_CMD env update -n agents_unplugged -f environment-gpu.yml --prune; \
-	else \
-		$$CONDA_CMD env update -n agents_unplugged -f environment-cpu.yml --prune; \
-	fi
+	@echo "Updating pip packages..."
+	@bash -c 'source $$(conda info --base)/etc/profile.d/conda.sh && \
+		conda activate agents_unplugged && \
+		pip install --upgrade -r requirements-core.txt && \
+		pip install --upgrade -r requirements-heavy.txt && \
+		echo "✓ Packages updated!"'
 
 jupyter:
 	@if conda env list | grep -q "^agents_unplugged "; then \

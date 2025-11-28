@@ -33,34 +33,73 @@ bash Miniforge3-MacOSX-$(uname -m).sh
 # Restart your terminal after installation
 ```
 
-### Automated Setup
+### Automated Setup (RECOMMENDED - Fast!)
 
-Run the automated setup script (detects GPU and installs appropriate environment):
+**Use the fast setup** - Minimal conda + staged pip installation (5-15 minutes):
 
 ```bash
-bash setup.sh
+bash setup-fast.sh
 ```
 
 Or use the Makefile:
 
 ```bash
-make setup          # Auto-detect GPU/CPU
-make setup-gpu      # Force GPU environment with CUDA
-make setup-cpu      # Force CPU-only environment
+make setup       # Default: Fast setup (recommended!)
+make setup-fast  # Same as above
+```
+
+⚡ **Why this is better:**
+- Uses minimal conda environment (only CUDA, PyTorch, Jupyter)
+- Installs most packages via pip (much faster, no memory issues)
+- Staged installation prevents memory spikes
+- **Won't hang your system!**
+
+### Alternative: Old Setup (May Hang!)
+
+⚠️ **Not recommended** - Full conda resolution can hang with 500+ dependencies:
+
+```bash
+bash setup.sh       # Old method (30+ min, may hang)
+make setup-old      # Old method via Makefile
 ```
 
 ### Manual Setup
 
-**For GPU systems with CUDA:**
+**Minimal Conda + Pip (Recommended):**
+
+For GPU systems:
 ```bash
-mamba env create -f environment-gpu.yml
+# 1. Create minimal conda environment with CUDA
+mamba env create -f environment-minimal-gpu.yml
 conda activate agents_unplugged
+
+# 2. Install Python packages via pip
+pip install -r requirements-core.txt
+pip install -r requirements-heavy.txt
+pip install -r requirements-vllm.txt  # If you want vLLM
 ```
 
-**For CPU-only systems:**
+For CPU systems:
 ```bash
-mamba env create -f environment-cpu.yml
+# 1. Create minimal conda environment (CPU only)
+mamba env create -f environment-minimal-cpu.yml
 conda activate agents_unplugged
+
+# 2. Install Python packages via pip
+pip install -r requirements-core.txt
+pip install -r requirements-heavy.txt
+# Skip vllm for CPU
+```
+
+**Full Conda (Not Recommended - May Hang!):**
+
+If you insist on pure conda:
+```bash
+# GPU (may take 30+ min or hang!)
+mamba env create -f environment-gpu.yml
+
+# CPU (may take 30+ min or hang!)
+mamba env create -f environment-cpu.yml
 ```
 
 ## Alternative: Pip Installation (Not Recommended)
@@ -213,14 +252,32 @@ make update
 - `make clean` - Remove environment
 - `make update` - Update packages
 
-## Why Conda/Mamba?
+## Why Minimal Conda + Pip Hybrid?
 
-This project uses Conda/Mamba instead of pip because:
+This project uses a **hybrid approach**:
+- **Conda for system dependencies**: CUDA, PyTorch, core scientific packages
+- **Pip for Python packages**: LangChain, LangFlow, and other pure-Python packages
 
-1. **GPU Support**: Manages CUDA toolkit and ensures version compatibility
-2. **Reproducibility**: Locks system-level dependencies (CUDA, cuDNN)
-3. **Binary Packages**: Pre-compiled packages for faster installation
-4. **Conflict Resolution**: Better dependency resolution for ML packages
-5. **Environment Isolation**: Complete isolation including system libraries
+### Benefits:
 
-For GPU users, conda is **essential** for proper CUDA management.
+1. **Fast Installation**: 5-15 minutes vs 30-60+ minutes (or hanging forever)
+2. **No Memory Issues**: Conda resolver won't consume 10+ GB RAM
+3. **Still GPU-Friendly**: Conda manages CUDA properly, pip installs on top
+4. **Reproducible**: Locked versions in requirements files
+5. **Flexible**: Easy to update individual packages
+
+### Why Not Pure Conda?
+
+Pure conda with 500+ dependencies (from langflow) causes:
+- ❌ Conda SAT solver explosion (10+ GB RAM usage)
+- ❌ Can hang indefinitely on dependency resolution
+- ❌ 30-60+ minute installation times (if it completes)
+
+### Why Not Pure Pip?
+
+Pure pip doesn't manage:
+- ❌ CUDA toolkit versions
+- ❌ Binary compatibility between PyTorch and CUDA
+- ❌ System-level dependencies
+
+**The hybrid approach gives you the best of both worlds!**

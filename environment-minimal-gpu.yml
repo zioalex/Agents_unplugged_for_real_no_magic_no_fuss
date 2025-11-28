@@ -1,0 +1,36 @@
+# Minimal Conda Environment for GPU
+# This installs ONLY system-level dependencies via conda
+# Python packages are installed via pip afterwards (much faster!)
+
+name: agents_unplugged
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python
+  - python=3.11
+
+  # GPU: CUDA toolkit and PyTorch with CUDA support
+  - pytorch::pytorch>=2.0,<2.5
+  - pytorch::torchvision
+  - pytorch::torchaudio
+  - pytorch::pytorch-cuda=12.1
+  - nvidia::cuda-toolkit=12.1
+
+  # Core scientific computing (conda versions are optimized)
+  - numpy>=1.26,<2.0
+  - pandas>=2.0,<3.0
+
+  # Jupyter
+  - jupyter
+  - ipykernel
+  - notebook
+
+  # Pip (to install remaining packages)
+  - pip
+
+  # Note: All other packages will be installed via pip
+  # This keeps conda resolution fast and prevents memory issues
