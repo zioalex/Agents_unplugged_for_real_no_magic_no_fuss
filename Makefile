@@ -1,98 +1,132 @@
-.PHONY: help setup setup-fast setup-old setup-gpu setup-cpu clean test jupyter activate
+.PHONY: help setup setup-cpu setup-gpu setup-gpu-vllm clean test jupyter activate doctor update
 
 help:
 	@echo "Agents Unplugged - Makefile Commands"
 	@echo "====================================="
 	@echo ""
-	@echo "Setup (RECOMMENDED - Fast & Reliable):"
-	@echo "  make setup-fast - Fast setup with minimal conda + pip (5-15 min)"
-	@echo "  make setup      - Same as setup-fast (default)"
-	@echo ""
-	@echo "Setup (Old Method - May Hang!):"
-	@echo "  make setup-old  - Old setup script (30+ min, may hang)"
-	@echo "  make setup-gpu  - Full conda GPU environment (may hang!)"
-	@echo "  make setup-cpu  - Full conda CPU environment (may hang!)"
+	@echo "Setup (Unified script):"
+	@echo "  make doctor         - Check system requirements before setup"
+	@echo "  make setup          - Auto-detect GPU and install"
+	@echo "  make setup-cpu      - Force CPU-only install"
+	@echo "  make setup-gpu      - Force GPU install"
+	@echo "  make setup-gpu-vllm - GPU install with optional vLLM extras"
 	@echo ""
 	@echo "Usage:"
-	@echo "  make jupyter    - Start Jupyter notebook server"
-	@echo "  make test       - Run basic tests to verify installation"
+	@echo "  make jupyter ENV=<env> - Start Jupyter (default ENV=agents_unplugged-gpu)"
+	@echo "  make test ENV=<env>    - Run smoke tests inside an environment"
 	@echo ""
 	@echo "Maintenance:"
-	@echo "  make clean      - Remove conda environment"
-	@echo "  make update     - Update pip packages"
+	@echo "  make clean            - Remove agents_unplugged-* environments"
+
+doctor:
+	@echo "================================================"
+	@echo "  System Integrity Check"
+	@echo "================================================"
 	@echo ""
-	@echo "Note: After 'make setup', activate the environment with:"
-	@echo "      conda activate agents_unplugged"
+	@echo "Checking for conda or mamba..."
+	@if command -v mamba >/dev/null 2>&1; then \
+		echo "✓ mamba found"; \
+	elif command -v conda >/dev/null 2>&1; then \
+		echo "✓ conda found"; \
+	else \
+		echo "✗ conda or mamba not found. Please install and configure it in your PATH."; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "Checking disk space..."
+	@if [ $$(df -k . | awk 'NR==2 {print $$4}') -lt 10000000 ]; then \
+		echo "  ⚠ Less than 10GB disk space. May not be enough for GPU setup."; \
+	else \
+		echo "  ✓ Sufficient disk space"; \
+	fi
+	@echo ""
+	@echo "Checking for GPU..."
+	@if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then \
+		echo "✓ GPU detected:"; \
+		nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | sed 's/^/  /'; \
+	else \
+		echo "✗ No GPU detected (will install CPU-only environment)"; \
+	fi
+	@echo ""
+	@echo "Checking for existing environment..."
+	@if command -v conda >/dev/null 2>&1 && conda env list | awk '{print $$1}' | grep -q '^agents_unplugged-'; then \
+		echo "⚠ One or more agents_unplugged-* environments already exist"; \
+		echo "  Use 'make clean' to remove them before reinstalling"; \
+		conda env list | awk '/agents_unplugged-/{print "    • " $$1}'; \
+	else \
+		echo "✓ No existing environment found"; \
+	fi
+	@echo ""
+	@echo "================================================"
+	@echo "  System check complete!"
+	@echo "================================================"
+	@echo ""
+	@echo "Ready to install! Run: make setup"
 
-setup: setup-fast
-
-setup-fast:
-	@bash setup-fast.sh
-
-setup-old:
+setup:
 	@bash setup.sh
 
-setup-gpu:
-	@echo "WARNING: This may consume a lot of memory and hang!"
-	@echo "Consider using 'make setup-fast' instead."
-	@read -p "Continue anyway? (y/N): " -n 1 -r; \
-	echo; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		command -v mamba >/dev/null 2>&1 && CONDA_CMD=mamba || CONDA_CMD=conda; \
-		$$CONDA_CMD env create -f environment-gpu.yml; \
-	else \
-		echo "Cancelled. Use 'make setup-fast' for a better experience."; \
-	fi
-
 setup-cpu:
-	@echo "WARNING: This may consume a lot of memory and hang!"
-	@echo "Consider using 'make setup-fast' instead."
-	@read -p "Continue anyway? (y/N): " -n 1 -r; \
-	echo; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		command -v mamba >/dev/null 2>&1 && CONDA_CMD=mamba || CONDA_CMD=conda; \
-		$$CONDA_CMD env create -f environment-cpu.yml; \
-	else \
-		echo "Cancelled. Use 'make setup-fast' for a better experience."; \
-	fi
+	@bash setup.sh --cpu
+
+setup-gpu:
+	@bash setup.sh --gpu
+
+setup-gpu-vllm:
+	@bash setup.sh --gpu --with-vllm
 
 clean:
-	@echo "Removing conda environment 'agents_unplugged'..."
+	@echo "Removing conda environments matching agents_unplugged-* ..."
 	@command -v mamba >/dev/null 2>&1 && CONDA_CMD=mamba || CONDA_CMD=conda; \
-	$$CONDA_CMD env remove -n agents_unplugged -y || true
+	FOUND=0; \
+	for NAME in $$($$CONDA_CMD env list | awk '/agents_unplugged-/{print $$1}'); do \
+		FOUND=1; \
+		echo "  • Removing $$NAME"; \
+		$$CONDA_CMD env remove -n $$NAME -y; \
+	done; \
+	if [ $$FOUND -eq 0 ]; then \
+		echo "Nothing to clean."; \
+	fi
+
+ENV ?= agents_unplugged-gpu
 
 update:
-	@echo "Updating pip packages..."
+	@echo "Updating pip packages inside $(ENV)..."
 	@bash -c 'source $$(conda info --base)/etc/profile.d/conda.sh && \
-		conda activate agents_unplugged && \
-		pip install --upgrade -r requirements-core.txt && \
-		pip install --upgrade -r requirements-heavy.txt && \
+		conda activate $(ENV) && \
+		CONSTRAINTS_ARG=""; \
+		if [ -f $$PWD/constraints.txt ]; then \
+			CONSTRAINTS_ARG="-c $$PWD/constraints.txt"; \
+		fi; \
+		pip install --upgrade $$CONSTRAINTS_ARG -r requirements-core.txt && \
+		pip install --upgrade $$CONSTRAINTS_ARG -r requirements-langflow.txt && \
+		if [ -f $$PWD/requirements-vllm.txt ] && grep -q "vllm" requirements-vllm.txt; then \
+			pip install --upgrade $$CONSTRAINTS_ARG -r requirements-vllm.txt || true; \
+		fi && \
 		echo "✓ Packages updated!"'
 
 jupyter:
-	@if conda env list | grep -q "^agents_unplugged "; then \
-		echo "Starting Jupyter notebook..."; \
-		echo "Note: Make sure to run 'conda activate agents_unplugged' first!"; \
+	@if conda env list | awk '{print $$1}' | grep -q '^$(ENV)$$'; then \
+		echo "Starting Jupyter notebook using environment $(ENV)..."; \
+		echo "Run: conda activate $(ENV)"; \
 		jupyter notebook; \
 	else \
-		echo "Error: Environment not found. Run 'make setup' first."; \
+		echo "Error: Environment $(ENV) not found. Run 'make setup' first or set ENV=<name>."; \
 		exit 1; \
 	fi
 
 test:
-	@echo "Testing installation..."
-	@bash -c 'source $$(conda info --base)/etc/profile.d/conda.sh && \
-		conda activate agents_unplugged && \
-		python -c "import torch; import langchain; import pandas; import matplotlib; \
-		print(\"✓ Core packages installed\"); \
-		print(f\"  Python: {__import__(\"sys\").version}\"); \
-		print(f\"  PyTorch: {torch.__version__}\"); \
-		print(f\"  LangChain: {langchain.__version__}\"); \
-		print(f\"  CUDA available: {torch.cuda.is_available()}\")"'
+	@if conda env list | awk '{print $$1}' | grep -q '^$(ENV)$$'; then \
+		echo "Running smoke test inside $(ENV)..."; \
+		ENV_NAME=$(ENV) conda run -n $(ENV) python code/smoke_test.py; \
+	else \
+		echo "Error: Environment $(ENV) not found. Run 'make setup' first or set ENV=<name>."; \
+		exit 1; \
+	fi
 
 activate:
 	@echo "To activate the environment, run:"
-	@echo "  conda activate agents_unplugged"
+	@echo "  conda activate <agents_unplugged-{cpu|gpu|-gpu-vllm}>"
 	@echo ""
 	@echo "Note: 'make activate' cannot activate in the current shell."
 	@echo "You must run the command above directly."

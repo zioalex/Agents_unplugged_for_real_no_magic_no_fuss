@@ -1,0 +1,65 @@
+# Conda-First Environment for GPU
+# Installs all available packages via conda, then uses pip only for what's missing
+# This minimizes conflicts and prevents pip from reinstalling conda packages
+
+name: agents_unplugged
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python
+  - python=3.11
+
+  # GPU: CUDA toolkit and PyTorch with CUDA support
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1
+  - cuda-toolkit=12.1
+
+  # Core scientific computing (conda optimized with Intel MKL)
+  - numpy=1.26.*
+  - pandas=2.1.*
+  - scipy=1.11.*
+  - matplotlib
+  - pillow
+
+  # Jupyter
+  - jupyter
+  - ipykernel
+  - notebook
+
+  # LangChain ecosystem (conda-forge)
+  - langchain
+  - langchain-community
+  - langchain-core
+  - langchain-text-splitters
+  - langchain-openai
+  - langchain-ollama
+  - langchain-mcp-adapters
+  
+  # OpenAI and LLM tools
+  - openai
+  - tiktoken
+  
+  # Web and async
+  - requests
+  - httpx
+  - aiohttp
+  
+  # Data and utilities
+  - pydantic
+  - sqlalchemy
+  
+  # MCP
+  - mcp
+  
+  # Pip (needed for langflow)
+  - pip
+
+# Note: After conda creates this environment, run:
+#   pip install --no-cache-dir langflow
+# Pip will use all the conda packages above and only install what's missing

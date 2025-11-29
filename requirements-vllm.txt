@@ -1,4 +1,4 @@
 # vLLM for GPU inference
 # Install only if you have a compatible NVIDIA GPU with CUDA 12.1
 
-vllm==0.6.5
+vllm

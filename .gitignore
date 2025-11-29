@@ -76,3 +76,11 @@ pip-delete-this-directory.txt
 *.tmp
 /tmp/
 temp/
+
+# Generated constraints snapshot
+constraints.txt
+
+# Large binary installers and wheels
+Miniforge3-*.sh
+*.whl
+*.tar.gz

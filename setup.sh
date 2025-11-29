@@ -1,149 +1,290 @@
-#!/bin/bash
-#
-# Automated setup script for Agents Unplugged
-# Detects GPU availability and installs appropriate environment
-#
+#!/usr/bin/env bash
 
-set -e  # Exit on error
+set -euo pipefail
 
-echo "================================================"
-echo "  Agents Unplugged - Automated Setup"
-echo "================================================"
-echo ""
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+RED="\033[0;31m"
+NC="\033[0m"
 
-# Function to check if command exists
+print_header() {
+    echo "=========================================="
+    echo "  Agents Unplugged - Unified Setup"
+    echo "=========================================="
+    echo ""
+}
+
+usage() {
+    cat <<'EOF'
+Usage: ./setup.sh [--cpu|--gpu] [--with-vllm]
+
+Options:
+    --cpu             Create the agents_unplugged-cpu environment (no CUDA)
+    --gpu             Create the agents_unplugged-gpu environment (CUDA 12.1)
+    --with-vllm       Include vLLM support (requires --gpu)
+    -h, --help        Show this help message
+
+If neither --cpu nor --gpu is provided, the script will auto-detect GPU
+availability and choose the corresponding environment.
+EOF
+}
+
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to detect GPU
 detect_gpu() {
-    if command_exists nvidia-smi; then
-        if nvidia-smi &>/dev/null; then
-            echo "✓ GPU detected"
-            return 0
-        fi
+    if command_exists nvidia-smi && nvidia-smi &>/dev/null; then
+        return 0
     fi
-    echo "✗ No GPU detected (will use CPU-only mode)"
     return 1
 }
 
-# Check for conda/mamba
-if ! command_exists conda && ! command_exists mamba; then
-    echo "ERROR: Neither conda nor mamba found!"
-    echo ""
-    echo "Please install Miniforge (includes mamba and conda):"
-    echo ""
-    echo "  Linux/WSL:"
-    echo "    wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
-    echo "    bash Miniforge3-Linux-x86_64.sh"
-    echo ""
-    echo "  macOS:"
-    echo "    wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh"
-    echo "    bash Miniforge3-MacOSX-$(uname -m).sh"
-    echo ""
-    echo "After installation, restart your terminal and run this script again."
-    exit 1
-fi
-
-# Prefer mamba over conda (much faster)
-if command_exists mamba; then
-    CONDA_CMD="mamba"
-    echo "Using: mamba (fast!)"
-else
-    CONDA_CMD="conda"
-    echo "Using: conda"
-fi
-
-echo ""
-echo "Step 1: Detecting environment..."
-echo "--------------------------------"
-
-# Detect GPU and select environment file
-if detect_gpu; then
-    ENV_FILE="environment-gpu.yml"
-    echo "Selected: GPU environment (with CUDA support)"
-else
-    ENV_FILE="environment-cpu.yml"
-    echo "Selected: CPU-only environment (lighter weight)"
-fi
-
-echo ""
-echo "Step 2: Creating conda environment..."
-echo "--------------------------------------"
-
-# Check if environment already exists
-if $CONDA_CMD env list | grep -q "^agents_unplugged "; then
-    echo "⚠ Environment 'agents_unplugged' already exists!"
-    read -p "Do you want to remove it and reinstall? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "Removing existing environment..."
-        $CONDA_CMD env remove -n agents_unplugged -y
+select_conda_cmd() {
+    if command_exists mamba; then
+        echo "mamba"
+    elif command_exists conda; then
+        echo "conda"
     else
-        echo "Updating existing environment instead..."
-        $CONDA_CMD env update -n agents_unplugged -f "$ENV_FILE" --prune
-        echo ""
-        echo "✓ Environment updated successfully!"
-        echo ""
-        echo "To activate:"
-        echo "  conda activate agents_unplugged"
-        exit 0
+        echo """" # empty
+    fi
+}
+
+ensure_conda() {
+    local cmd
+    cmd=$(select_conda_cmd)
+    if [[ -z "$cmd" ]]; then
+        echo -e "${RED}✗ Neither conda nor mamba was found on PATH.${NC}" >&2
+        echo "Install Miniforge from https://github.com/conda-forge/miniforge" >&2
+        exit 1
+    fi
+    echo "$cmd"
+}
+
+enable_libmamba() {
+    local cmd="$1"
+    if [[ "$cmd" != "conda" ]]; then
+        return 0
+    fi
+
+    local version
+    if ! version=$(conda --version 2>/dev/null | awk '{print $2}'); then
+        return 0
+    fi
+
+    if printf '%s\n' "22.11.0" "$version" | sort -V | head -n1 | grep -qx "22.11.0"; then
+        if printf '%s\n' "23.10.0" "$version" | sort -V | head -n1 | grep -qx "23.10.0"; then
+            return 0
+        fi
+        conda install -n base conda-libmamba-solver -y -q >/dev/null 2>&1 || true
+        conda config --set solver libmamba >/dev/null 2>&1 || true
+    fi
+}
+
+remove_environment() {
+    local cmd="$1" env_name="$2"
+    if $cmd env list | awk '{print $1}' | grep -qx "$env_name"; then
+        echo -e "${YELLOW}Removing existing environment ${env_name}${NC}"
+        $cmd env remove -n "$env_name" -y
+    fi
+}
+
+create_environment() {
+    local cmd="$1" env_name="$2" env_file="$3"
+    echo -e "${GREEN}Creating environment ${env_name}${NC}"
+    $cmd env create --name "$env_name" --file "$env_file"
+}
+
+activate_environment() {
+    local env_name="$1"
+    set +u # Temporarily disable exit on unbound variable
+    source "$(conda info --base)/etc/profile.d/conda.sh"
+    conda activate "$env_name"
+    set -u # Re-enable exit on unbound variable
+}
+
+generate_constraints() {
+    python - <<'PY'
+from importlib import metadata
+from pathlib import Path
+
+HARDWARE_PREFIXES = (
+    "torch",
+    "pytorch",
+    "cuda",
+    "cudnn",
+    "nvidia-",
+    "triton",
+)
+
+records = {}
+for dist in metadata.distributions():
+    name = dist.metadata.get('Name')
+    version = dist.version
+    if not name or not version:
+        continue
+
+    normalized = name.strip().replace(' ', '-')
+    key = normalized.lower()
+    if not any(key.startswith(prefix) for prefix in HARDWARE_PREFIXES):
+        continue
+
+    records[key] = (normalized, version)
+
+constraints = Path('constraints.txt')
+with constraints.open('w', encoding='utf-8') as handle:
+    handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
+    handle.write('# Generated by setup.sh to mirror the active conda environment\n')
+    handle.write('# Contains only hardware-accelerated packages pinned from conda\n')
+    for _, (name, version) in sorted(records.items()):
+        handle.write(f"{name}=={version}\n")
+PY
+}
+
+install_requirements() {
+    local label="$1"
+    local requirements="$2"
+
+    if [[ ! -f "$requirements" ]]; then
+        echo -e "${YELLOW}Skipping ${label} (missing ${requirements})${NC}"
+        return 0
+    fi
+
+    echo -e "${GREEN}Installing ${label}${NC}"
+    pip install --no-cache-dir -c constraints.txt -r "$requirements"
+}
+
+run_smoke_tests() {
+    local check_vllm="$1"
+    python - <<PY
+import sys
+
+CHECK_VLLM = ${check_vllm}
+
+def check(name):
+    try:
+        __import__(name)
+    except Exception as exc:
+        print(f"- {name}: FAILED ({exc})")
+        return False
+    else:
+        version = getattr(sys.modules[name], '__version__', 'unknown')
+        print(f"- {name}: OK ({version})")
+        return True
+
+all_ok = True
+for pkg in ['torch', 'langchain', 'langflow']:
+    all_ok &= check(pkg)
+
+if CHECK_VLLM:
+    all_ok &= check('vllm')
+
+if CHECK_VLLM:
+    import torch
+    print(f"- torch.cuda.is_available(): {torch.cuda.is_available()}")
+
+sys.exit(0 if all_ok else 1)
+PY
+}
+
+print_header
+
+TARGET=""
+WITH_VLLM=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --cpu)
+            TARGET="cpu"
+            shift
+            ;;
+        --gpu)
+            TARGET="gpu"
+            shift
+            ;;
+        --with-vllm)
+            WITH_VLLM=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}" >&2
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "$TARGET" ]]; then
+    if detect_gpu; then
+        TARGET="gpu"
+        echo -e "${YELLOW}Auto-detected GPU - using GPU environment${NC}"
+    else
+        TARGET="cpu"
+        echo -e "${YELLOW}No GPU detected - using CPU environment${NC}"
     fi
 fi
 
-# Create new environment
-echo "This may take 5-15 minutes depending on your internet connection..."
-$CONDA_CMD env create -f "$ENV_FILE"
-
-echo ""
-echo "Step 3: Verifying installation..."
-echo "----------------------------------"
-
-# Activate and verify
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate agents_unplugged
-
-# Verify Python
-echo -n "Python version: "
-python --version
-
-# Verify key packages
-echo -n "PyTorch version: "
-python -c "import torch; print(torch.__version__)"
-
-if detect_gpu; then
-    echo -n "CUDA available: "
-    python -c "import torch; print('Yes' if torch.cuda.is_available() else 'No (Check GPU drivers!)')"
-
-    echo -n "CUDA version: "
-    python -c "import torch; print(torch.version.cuda if torch.cuda.is_available() else 'N/A')"
+if $WITH_VLLM && [[ "$TARGET" != "gpu" ]]; then
+    echo -e "${RED}--with-vllm requires --gpu${NC}" >&2
+    exit 1
 fi
 
-echo -n "LangChain version: "
-python -c "import langchain; print(langchain.__version__)" 2>/dev/null || echo "Not installed (will install with langflow)"
+ENV_FILE="environment-minimal-${TARGET}.yml"
+ENV_NAME="agents_unplugged-${TARGET}"
+if $WITH_VLLM; then
+    ENV_NAME="${ENV_NAME}-vllm"
+fi
+
+echo -e "Environment file: ${ENV_FILE}"
+echo -e "Environment name : ${ENV_NAME}"
+if $WITH_VLLM; then
+    echo -e "${YELLOW}vLLM support will be installed${NC}"
+fi
+
+CONDA_CMD=$(ensure_conda)
+echo -e "Using package manager: ${CONDA_CMD}"
+enable_libmamba "$CONDA_CMD"
+
+remove_environment "$CONDA_CMD" "$ENV_NAME"
+create_environment "$CONDA_CMD" "$ENV_NAME" "$ENV_FILE"
+activate_environment "$ENV_NAME"
+
+echo -e "${GREEN}Generating constraints snapshot from the fresh environment${NC}"
+generate_constraints
+
+install_requirements "core requirements" "requirements-core.txt"
+
+install_requirements "LangFlow requirements" "requirements-langflow.txt"
+
+if $WITH_VLLM; then
+    install_requirements "vLLM requirements" "requirements-vllm.txt"
+fi
+
+echo -e "${GREEN}Refreshing constraints snapshot after pip installs${NC}"
+generate_constraints
+
+echo -e "${GREEN}Running smoke tests${NC}"
+SMOKE_FLAG="False"
+if $WITH_VLLM; then
+    SMOKE_FLAG="True"
+fi
+if run_smoke_tests "$SMOKE_FLAG"; then
+    echo -e "${GREEN}All smoke tests passed${NC}"
+else
+    echo -e "${YELLOW}Smoke tests reported issues. Review the output above.${NC}"
+fi
 
 echo ""
-echo "================================================"
-echo "  ✓ Setup Complete!"
-echo "================================================"
+echo "=========================================="
+echo -e "  ${GREEN}✓ Setup Complete${NC}"
+echo "=========================================="
 echo ""
-echo "Next steps:"
+echo "To activate the environment run:"
+echo "  conda activate ${ENV_NAME}"
 echo ""
-echo "1. Activate the environment:"
-echo "   conda activate agents_unplugged"
-echo ""
-echo "2. Copy and configure your API keys:"
-echo "   cp notebooks/config.json.example notebooks/config.json"
-echo "   # Edit notebooks/config.json with your API keys"
-echo ""
-echo "3. Start Jupyter:"
-echo "   jupyter notebook"
-echo ""
-echo "4. Open and run:"
-echo "   notebooks/llm_agents_langchain_langflow_demo.ipynb"
-echo ""
-echo "Optional - Install Ollama for local LLM:"
-echo "   curl -fsSL https://ollama.com/install.sh | sh"
-echo "   ollama pull llama3.1:8b"
+echo "constraints.txt reflects hardware packages pinned from conda."
 echo ""

@@ -1,9 +1,3 @@
-# Heavy dependencies (installed separately to avoid memory issues)
-# These packages have large dependency trees and are installed one at a time
-
-# LangFlow (has 500+ dependencies - install last!)
-langflow>=1.1,<2.0
-
-# vLLM (GPU only - large package)
-# Note: Only install this if you have a GPU
-# vllm==0.6.5
+# This file has been superseded by requirements-langflow.txt
+# Kept for backwards compatibility. New workflows should consume
+# requirements-langflow.txt directly.

@@ -2,7 +2,7 @@
 # This installs ONLY system-level dependencies via conda
 # Python packages are installed via pip afterwards (much faster!)
 
-name: agents_unplugged
+name: agents_unplugged-cpu
 channels:
   - pytorch
   - conda-forge
@@ -13,14 +13,10 @@ dependencies:
   - python=3.11
 
   # CPU-only PyTorch (much smaller, no CUDA)
-  - pytorch::pytorch>=2.0,<2.5
-  - pytorch::torchvision
-  - pytorch::torchaudio
+  - pytorch=2.5.*
+  - torchvision=0.20.*
+  - torchaudio=2.5.*
   - cpuonly
-
-  # Core scientific computing
-  - numpy>=1.26,<2.0
-  - pandas>=2.0,<3.0
 
   # Jupyter
   - jupyter
