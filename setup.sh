@@ -104,6 +104,9 @@ activate_environment() {
 }
 
 generate_constraints() {
+    # Generate constraints.txt from the current conda environment
+    # This will pin hardware-accelerated packages to their versions
+    # as installed in the conda environment, ensuring compatibility.
     python - <<'PY'
 from importlib import metadata
 from pathlib import Path

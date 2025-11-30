@@ -1,3 +1,0 @@
-# This file has been superseded by requirements-langflow.txt
-# Kept for backwards compatibility. New workflows should consume
-# requirements-langflow.txt directly.

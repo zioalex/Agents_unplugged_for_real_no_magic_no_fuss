@@ -22,3 +22,8 @@ langchain-mcp-adapters
 
 # MCP
 mcp[cli]
+
+# Jupyter
+jupyter
+ipykernel
+notebook

@@ -211,3 +211,6 @@ python -c "import torch; import langchain; print('✓ Installation successful!')
 - Constraints are regenerated before and after pip installs so follow-up upgrades respect the versions already resolved on your machine.
 - constraints.txt is ignored by Git; keep it locally to anchor downstream `pip install -c constraints.txt` commands.
 
+## References
+
+[Python dependency management is a dumpster](https://nielscautaerts.xyz/python-dependency-management-is-a-dumpster-fire.html)
