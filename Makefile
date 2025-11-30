@@ -1,4 +1,4 @@
-.PHONY: help setup setup-cpu setup-gpu setup-gpu-vllm clean test jupyter activate doctor update
+.PHONY: help setup setup-cpu setup-gpu setup-gpu-vllm clean test jupyter activate doctor update compile-requirements
 
 help:
 	@echo "Agents Unplugged - Makefile Commands"
@@ -16,7 +16,9 @@ help:
 	@echo "  make test ENV=<env>    - Run smoke tests inside an environment"
 	@echo ""
 	@echo "Maintenance:"
-	@echo "  make clean            - Remove agents_unplugged-* environments"
+	@echo "  make compile-requirements - Regenerate .txt from .in files with pip-compile"
+	@echo "  make update ENV=<env>     - Recompile and upgrade packages"
+	@echo "  make clean                - Remove agents_unplugged-* environments"
 
 doctor:
 	@echo "================================================"
@@ -98,6 +100,14 @@ update:
 		if [ -f $$PWD/constraints.txt ]; then \
 			CONSTRAINTS_ARG="-c $$PWD/constraints.txt"; \
 		fi; \
+		if command -v pip-compile >/dev/null 2>&1; then \
+			echo "Recompiling requirements with pip-tools..."; \
+			pip-compile $$CONSTRAINTS_ARG requirements-core.in -o requirements-core.txt; \
+			pip-compile $$CONSTRAINTS_ARG requirements-langflow.in -o requirements-langflow.txt; \
+			if [ -f requirements-vllm.in ]; then \
+				pip-compile $$CONSTRAINTS_ARG requirements-vllm.in -o requirements-vllm.txt; \
+			fi; \
+		fi && \
 		pip install --upgrade $$CONSTRAINTS_ARG -r requirements-core.txt && \
 		pip install --upgrade $$CONSTRAINTS_ARG -r requirements-langflow.txt && \
 		if [ -f $$PWD/requirements-vllm.txt ] && grep -q "vllm" requirements-vllm.txt; then \
@@ -130,3 +140,19 @@ activate:
 	@echo ""
 	@echo "Note: 'make activate' cannot activate in the current shell."
 	@echo "You must run the command above directly."
+
+compile-requirements:
+	@echo "Compiling requirements from .in files..."
+	@if ! command -v pip-compile >/dev/null 2>&1; then \
+		echo "Installing pip-tools..."; \
+		pip install pip-tools; \
+	fi
+	@if [ -f constraints.txt ]; then \
+		CONSTRAINTS="-c constraints.txt"; \
+	else \
+		CONSTRAINTS=""; \
+	fi; \
+	pip-compile $$CONSTRAINTS requirements-core.in -o requirements-core.txt && \
+	pip-compile $$CONSTRAINTS requirements-langflow.in -o requirements-langflow.txt && \
+	pip-compile $$CONSTRAINTS requirements-vllm.in -o requirements-vllm.txt && \
+	echo "✓ All requirements compiled!"

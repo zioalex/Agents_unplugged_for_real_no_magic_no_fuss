@@ -80,6 +80,9 @@ temp/
 # Generated constraints snapshot
 constraints.txt
 
+# pip-tools cache
+.pip-tools-cache/
+
 # Large binary installers and wheels
 Miniforge3-*.sh
 *.whl

@@ -201,7 +201,8 @@ python -c "import torch; import langchain; print('✓ Installation successful!')
 - make setup-gpu-vllm — GPU environment with vLLM layer
 - make jupyter ENV=<env> — Launch Jupyter in the chosen environment
 - make test ENV=<env> — Run smoke tests
-- make update ENV=<env> — Upgrade pip layers with constraints
+- make compile-requirements — Regenerate .txt files from .in files with pip-compile
+- make update ENV=<env> — Recompile and upgrade pip layers with constraints
 - make clean — Remove agents_unplugged-* environments
 - make activate — Print activation instructions for your shell
 
@@ -210,6 +211,51 @@ python -c "import torch; import langchain; print('✓ Installation successful!')
 - Pip layers install the fast-moving LangChain, LangFlow, and optional vLLM packages.
 - Constraints are regenerated before and after pip installs so follow-up upgrades respect the versions already resolved on your machine.
 - constraints.txt is ignored by Git; keep it locally to anchor downstream `pip install -c constraints.txt` commands.
+
+## Reproducible Builds with pip-tools
+This project uses pip-tools to ensure reproducible installations:
+
+### File Structure
+- `requirements-*.in` — Human-editable, minimal dependencies (what you want)
+- `requirements-*.txt` — Machine-generated, fully pinned (what gets installed)
+- Both files are committed to Git for reproducibility
+
+### Workflow
+**Regular users:** Just run `./setup.sh` — it installs from the pinned `.txt` files
+
+**Developers updating dependencies:**
+```bash
+# 1. Edit the .in file
+vim requirements-core.in
+
+# 2. Regenerate pinned versions
+make compile-requirements
+
+# 3. Test the changes
+make setup-gpu
+
+# 4. Commit both files
+git add requirements-*.in requirements-*.txt
+git commit -m "Update dependencies"
+```
+
+**Update a single package:**
+```bash
+# Install pip-tools if needed
+pip install pip-tools
+
+# Update just one package
+pip-compile --upgrade-package langchain requirements-core.in
+
+# Reinstall
+pip install -c constraints.txt -r requirements-core.txt
+```
+
+The `compile-requirements` step in setup.sh automatically:
+1. Checks for pip-tools (installs if missing)
+2. Compiles `.in` → `.txt` with full dependency resolution
+3. Applies constraints.txt to respect conda package versions
+4. Falls back to existing `.txt` files if `.in` files are missing
 
 ## References
 
