@@ -135,6 +135,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install PyYAML
+        run: |
+          pip install --upgrade pip
+          pip install pyyaml
+
       - name: Validate requirement files exist
         run: |
           test -f environment-minimal-cpu.yml || (echo "Missing environment-minimal-cpu.yml" && exit 1)
