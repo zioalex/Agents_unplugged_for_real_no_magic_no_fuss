@@ -7,6 +7,7 @@ Slides, notebooks, code, and assets demonstrating LangChain, LangFlow, LangGraph
 - notebooks/llm_agents_langchain_langflow_demo.ipynb — Main LangChain walkthrough
 - notebooks/mcp_addon_minimal.ipynb — MCP integration demo
 - code/mcp_safe_server.py — Safe MCP server implementation
+- TROUBLESHOOTING.md — Comprehensive troubleshooting guide
 
 ## Environments & Tooling
 - environment-minimal-gpu.yml — CUDA 12.1 toolchain + PyTorch GPU base
@@ -168,15 +169,9 @@ python -c "import torch; import langchain; print('✓ Installation successful!')
 ```
 
 ## Troubleshooting
-- Use mamba for faster solves:
-	```bash
-	conda install -n base mamba -c conda-forge
-	```
-- Enable the libmamba solver when using conda:
-	```bash
-	conda install -n base conda-libmamba-solver
-	conda config --set solver libmamba
-	```
+For comprehensive troubleshooting guidance, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+Quick tips:
 - Clean and retry:
 	```bash
 	make clean
