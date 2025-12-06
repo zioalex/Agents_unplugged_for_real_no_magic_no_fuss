@@ -67,6 +67,17 @@ jobs:
           python - <<'PY'
           from importlib import metadata
           from pathlib import Path
+
+          # Only constrain hardware-related packages to avoid conflicts with pip requirements
+          HARDWARE_PREFIXES = (
+              "torch",
+              "pytorch",
+              "cuda",
+              "cudnn",
+              "nvidia-",
+              "triton",
+          )
+
           records = {}
           for dist in metadata.distributions():
             name = dist.metadata.get('Name')
@@ -74,10 +85,16 @@ jobs:
             if not name or not version:
               continue
             normalized = name.strip().replace(' ', '-')
-            records[normalized.lower()] = (normalized, version)
+            key = normalized.lower()
+            # Only include hardware packages
+            if not any(key.startswith(prefix) for prefix in HARDWARE_PREFIXES):
+              continue
+            records[key] = (normalized, version)
+
           constraints = Path('constraints.txt')
           with constraints.open('w', encoding='utf-8') as handle:
             handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
+            handle.write('# Only hardware-accelerated packages are constrained\n')
             for _, (name, version) in sorted(records.items()):
               handle.write(f"{name}=={version}\n")
           PY
@@ -94,6 +111,17 @@ jobs:
           python - <<'PY'
           from importlib import metadata
           from pathlib import Path
+
+          # Only constrain hardware-related packages to avoid conflicts with pip requirements
+          HARDWARE_PREFIXES = (
+              "torch",
+              "pytorch",
+              "cuda",
+              "cudnn",
+              "nvidia-",
+              "triton",
+          )
+
           records = {}
           for dist in metadata.distributions():
             name = dist.metadata.get('Name')
@@ -101,10 +129,16 @@ jobs:
             if not name or not version:
               continue
             normalized = name.strip().replace(' ', '-')
-            records[normalized.lower()] = (normalized, version)
+            key = normalized.lower()
+            # Only include hardware packages
+            if not any(key.startswith(prefix) for prefix in HARDWARE_PREFIXES):
+              continue
+            records[key] = (normalized, version)
+
           constraints = Path('constraints.txt')
           with constraints.open('w', encoding='utf-8') as handle:
             handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
+            handle.write('# Only hardware-accelerated packages are constrained\n')
             for _, (name, version) in sorted(records.items()):
               handle.write(f"{name}=={version}\n")
           PY
