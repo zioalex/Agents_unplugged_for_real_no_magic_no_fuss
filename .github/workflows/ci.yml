@@ -165,8 +165,9 @@ jobs:
       - name: Check for common issues
         run: |
           # Check that requirements files don't have duplicate entries
+          # Note: pip-compile generates comments (lines starting with # or spaces)
           if [ -f requirements-core.txt ]; then
-            duplicates=$(grep -v '^#' requirements-core.txt | grep -v '^$' | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | sort | uniq -d)
+            duplicates=$(grep -v '^#' requirements-core.txt | grep -v '^$' | grep -v '^ ' | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'[' -f1 | sort | uniq -d)
             if [ -n "$duplicates" ]; then
               echo "Duplicate packages found in requirements-core.txt:"
               echo "$duplicates"
