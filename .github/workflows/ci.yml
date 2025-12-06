@@ -42,126 +42,30 @@ jobs:
           restore-keys: |
             conda-${{ runner.os }}-
 
-      - name: Display system info
+      - name: Run system checks
         run: |
-          echo "Python version: $(python --version)"
-          echo "Conda version: $(conda --version)"
-          echo "Mamba version: $(mamba --version)"
-          echo "Available disk space:"
-          df -h
+          make doctor
 
-      - name: Create conda environment
+      - name: Setup CPU environment
         run: |
-          # Check if environment exists (from cache)
-          if conda env list | grep -q "^agents_unplugged-cpu "; then
-            echo "Environment exists (from cache), updating..."
-            mamba env update -f environment-minimal-cpu.yml --prune
-          else
-            echo "Creating new environment..."
-            mamba env create -f environment-minimal-cpu.yml
-          fi
-
-      - name: Generate constraints
-        run: |
-          conda activate agents_unplugged-cpu
-          python - <<'PY'
-          from importlib import metadata
-          from pathlib import Path
-
-          # Only constrain hardware-related packages to avoid conflicts with pip requirements
-          HARDWARE_PREFIXES = (
-              "torch",
-              "pytorch",
-              "cuda",
-              "cudnn",
-              "nvidia-",
-              "triton",
-          )
-
-          records = {}
-          for dist in metadata.distributions():
-            name = dist.metadata.get('Name')
-            version = dist.version
-            if not name or not version:
-              continue
-            normalized = name.strip().replace(' ', '-')
-            key = normalized.lower()
-            # Only include hardware packages
-            if not any(key.startswith(prefix) for prefix in HARDWARE_PREFIXES):
-              continue
-            records[key] = (normalized, version)
-
-          constraints = Path('constraints.txt')
-          with constraints.open('w', encoding='utf-8') as handle:
-            handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
-            handle.write('# Only hardware-accelerated packages are constrained\n')
-            for _, (name, version) in sorted(records.items()):
-              handle.write(f"{name}=={version}\n")
-          PY
-
-      - name: Install pip dependencies
-        run: |
-          conda activate agents_unplugged-cpu
-          pip install --no-cache-dir -c constraints.txt -r requirements-core.txt
-          pip install --no-cache-dir -c constraints.txt -r requirements-langflow.txt
-
-      - name: Refresh constraints
-        run: |
-          conda activate agents_unplugged-cpu
-          python - <<'PY'
-          from importlib import metadata
-          from pathlib import Path
-
-          # Only constrain hardware-related packages to avoid conflicts with pip requirements
-          HARDWARE_PREFIXES = (
-              "torch",
-              "pytorch",
-              "cuda",
-              "cudnn",
-              "nvidia-",
-              "triton",
-          )
-
-          records = {}
-          for dist in metadata.distributions():
-            name = dist.metadata.get('Name')
-            version = dist.version
-            if not name or not version:
-              continue
-            normalized = name.strip().replace(' ', '-')
-            key = normalized.lower()
-            # Only include hardware packages
-            if not any(key.startswith(prefix) for prefix in HARDWARE_PREFIXES):
-              continue
-            records[key] = (normalized, version)
-
-          constraints = Path('constraints.txt')
-          with constraints.open('w', encoding='utf-8') as handle:
-            handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
-            handle.write('# Only hardware-accelerated packages are constrained\n')
-            for _, (name, version) in sorted(records.items()):
-              handle.write(f"{name}=={version}\n")
-          PY
+          make setup-cpu
 
       - name: Run smoke tests
         run: |
-          conda activate agents_unplugged-cpu
-          ENV_NAME=agents_unplugged-cpu python code/smoke_test.py
+          make test ENV=agents_unplugged-cpu
 
       - name: Verify core imports
         run: |
-          conda activate agents_unplugged-cpu
-          python -c "import torch; print(f'PyTorch: {torch.__version__}')"
-          python -c "import langchain; print(f'LangChain: {langchain.__version__}')"
-          python -c "import pandas; print(f'Pandas: {pandas.__version__}')"
-          python -c "import matplotlib; print(f'Matplotlib: {matplotlib.__version__}')"
-          python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+          conda run -n agents_unplugged-cpu python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+          conda run -n agents_unplugged-cpu python -c "import langchain; print(f'LangChain: {langchain.__version__}')"
+          conda run -n agents_unplugged-cpu python -c "import pandas; print(f'Pandas: {pandas.__version__}')"
+          conda run -n agents_unplugged-cpu python -c "import matplotlib; print(f'Matplotlib: {matplotlib.__version__}')"
+          conda run -n agents_unplugged-cpu python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 
       - name: Display installed packages
         if: always()
         run: |
-          conda activate agents_unplugged-cpu
-          conda list
+          conda run -n agents_unplugged-cpu conda list
 
   lint-and-validate:
     name: Lint and Validate
