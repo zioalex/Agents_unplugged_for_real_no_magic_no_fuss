@@ -1,0 +1,155 @@
+name: Dependency Security Scan
+
+on:
+  # Run weekly on Monday at 9 AM UTC
+  schedule:
+    - cron: '0 9 * * 1'
+  # Allow manual trigger
+  workflow_dispatch:
+  # Run on pushes that modify dependency files
+  push:
+    paths:
+      - 'requirements*.txt'
+      - 'requirements*.in'
+      - 'environment*.yml'
+
+jobs:
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install security tools
+        run: |
+          pip install --upgrade pip
+          pip install pip-audit safety bandit
+
+      - name: Audit core dependencies
+        continue-on-error: true
+        run: |
+          echo "## Core Dependencies Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          pip-audit -r requirements-core.txt --desc --format markdown >> $GITHUB_STEP_SUMMARY 2>&1 || echo "⚠️ Vulnerabilities found in core dependencies" >> $GITHUB_STEP_SUMMARY
+
+      - name: Audit LangFlow dependencies
+        continue-on-error: true
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## LangFlow Dependencies Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          pip-audit -r requirements-langflow.txt --desc --format markdown >> $GITHUB_STEP_SUMMARY 2>&1 || echo "⚠️ Vulnerabilities found in LangFlow dependencies" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check with Safety
+        continue-on-error: true
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Safety Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          safety check -r requirements-core.txt --output text >> $GITHUB_STEP_SUMMARY 2>&1 || echo "⚠️ Safety check found issues" >> $GITHUB_STEP_SUMMARY
+
+      - name: Scan code for security issues
+        continue-on-error: true
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Code Security Scan (Bandit)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          bandit -r code/ -f txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo "⚠️ Bandit found potential security issues" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create issue if vulnerabilities found
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '🔒 Security vulnerabilities detected in dependencies';
+            const body = `## Security Scan Results
+
+            The automated security scan has detected potential vulnerabilities in the project dependencies.
+
+            **Scan Date:** ${new Date().toISOString().split('T')[0]}
+            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ### Action Required
+            1. Review the workflow run output for details
+            2. Update vulnerable dependencies
+            3. Test the updates
+            4. Close this issue once resolved
+
+            ### Tools Used
+            - pip-audit
+            - safety
+            - bandit
+
+            *This issue was automatically created by the dependency-scan workflow.*`;
+
+            // Check if similar issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['security', 'dependencies']
+            });
+
+            const existingIssue = issues.data.find(issue => issue.title === title);
+
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['security', 'dependencies', 'automated']
+              });
+            }
+
+  check-outdated:
+    name: Check Outdated Packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: check-env
+          python-version: "3.11"
+          use-mamba: true
+
+      - name: Install pip-tools
+        run: |
+          pip install pip-tools
+
+      - name: Check for outdated packages
+        run: |
+          echo "## Outdated Packages Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Generated on: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Install current dependencies
+          pip install -r requirements-core.txt 2>&1 | head -20 || true
+
+          # Check for outdated packages
+          echo "### Core Dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          pip list --outdated --format=columns 2>&1 | head -30 >> $GITHUB_STEP_SUMMARY || echo "No outdated packages" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Update Command" >> $GITHUB_STEP_SUMMARY
+          echo "To update dependencies, run:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "make compile-requirements" >> $GITHUB_STEP_SUMMARY
+          echo "make setup-cpu  # Test changes" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -1,5 +1,9 @@
 # Agents for Real — Separate Files Package (Full)
 
+[![CI Tests](https://github.com/zioalex/Agents_unplugged_for_real_no_magic_no_fuss/actions/workflows/ci.yml/badge.svg)](https://github.com/zioalex/Agents_unplugged_for_real_no_magic_no_fuss/actions/workflows/ci.yml)
+[![PR Validation](https://github.com/zioalex/Agents_unplugged_for_real_no_magic_no_fuss/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/zioalex/Agents_unplugged_for_real_no_magic_no_fuss/actions/workflows/pr-validation.yml)
+[![Dependency Scan](https://github.com/zioalex/Agents_unplugged_for_real_no_magic_no_fuss/actions/workflows/dependency-scan.yml/badge.svg)](https://github.com/zioalex/Agents_unplugged_for_real_no_magic_no_fuss/actions/workflows/dependency-scan.yml)
+
 Slides, notebooks, code, and assets demonstrating LangChain, LangFlow, LangGraph, and MCP patterns for building production-ready AI agents.
 
 ## Structure
@@ -251,6 +255,52 @@ The `compile-requirements` step in setup.sh automatically:
 2. Compiles `.in` → `.txt` with full dependency resolution
 3. Applies constraints.txt to respect conda package versions
 4. Falls back to existing `.txt` files if `.in` files are missing
+
+## CI/CD and Quality Assurance
+
+This project includes comprehensive GitHub Actions workflows for continuous integration and testing:
+
+### Automated Workflows
+
+1. **CI Tests** (`.github/workflows/ci.yml`)
+   - Runs on every push and pull request
+   - Tests CPU environment setup and dependency installation
+   - Runs smoke tests to verify core imports
+   - Validates YAML and requirement files
+   - Performs basic security scanning
+
+2. **PR Validation** (`.github/workflows/pr-validation.yml`)
+   - Validates pull request format and content
+   - Checks for merge conflicts
+   - Reports PR size and statistics
+   - Flags large files and TODO comments
+
+3. **Dependency Security Scan** (`.github/workflows/dependency-scan.yml`)
+   - Runs weekly on Mondays at 9 AM UTC
+   - Scans dependencies for known vulnerabilities using pip-audit and safety
+   - Checks code for security issues with bandit
+   - Reports outdated packages
+   - Automatically creates issues for vulnerabilities
+
+### Branch Protection
+
+For production use, enable branch protection on `main`/`master`:
+
+- Require status checks: `test-cpu`, `lint-and-validate`, `validate-pr`
+- Require pull request reviews (minimum 1 approval)
+- Require conversation resolution before merging
+- Prevent force pushes and deletions
+
+See [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for detailed setup instructions.
+
+### Local Testing
+
+Before pushing, test locally:
+```bash
+make doctor                              # Check system prerequisites
+make setup-cpu                           # Create and test environment
+make test ENV=agents_unplugged-cpu       # Run smoke tests
+```
 
 ## References
 

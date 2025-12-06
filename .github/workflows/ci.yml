@@ -1,0 +1,197 @@
+name: CI Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  test-cpu:
+    name: Test CPU Environment
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: agents_unplugged-cpu
+          python-version: "3.11"
+          use-mamba: true
+
+      - name: Cache conda environment
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.conda/envs
+            ~/.conda/pkgs
+          key: conda-${{ runner.os }}-${{ hashFiles('environment-minimal-cpu.yml', 'requirements-core.txt', 'requirements-langflow.txt') }}
+          restore-keys: |
+            conda-${{ runner.os }}-
+
+      - name: Display system info
+        run: |
+          echo "Python version: $(python --version)"
+          echo "Conda version: $(conda --version)"
+          echo "Mamba version: $(mamba --version)"
+          echo "Available disk space:"
+          df -h
+
+      - name: Create conda environment
+        run: |
+          mamba env create -f environment-minimal-cpu.yml --force
+
+      - name: Generate constraints
+        run: |
+          conda activate agents_unplugged-cpu
+          python - <<'PY'
+          from importlib import metadata
+          from pathlib import Path
+          records = {}
+          for dist in metadata.distributions():
+            name = dist.metadata.get('Name')
+            version = dist.version
+            if not name or not version:
+              continue
+            normalized = name.strip().replace(' ', '-')
+            records[normalized.lower()] = (normalized, version)
+          constraints = Path('constraints.txt')
+          with constraints.open('w', encoding='utf-8') as handle:
+            handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
+            for _, (name, version) in sorted(records.items()):
+              handle.write(f"{name}=={version}\n")
+          PY
+
+      - name: Install pip dependencies
+        run: |
+          conda activate agents_unplugged-cpu
+          pip install --no-cache-dir -c constraints.txt -r requirements-core.txt
+          pip install --no-cache-dir -c constraints.txt -r requirements-langflow.txt
+
+      - name: Refresh constraints
+        run: |
+          conda activate agents_unplugged-cpu
+          python - <<'PY'
+          from importlib import metadata
+          from pathlib import Path
+          records = {}
+          for dist in metadata.distributions():
+            name = dist.metadata.get('Name')
+            version = dist.version
+            if not name or not version:
+              continue
+            normalized = name.strip().replace(' ', '-')
+            records[normalized.lower()] = (normalized, version)
+          constraints = Path('constraints.txt')
+          with constraints.open('w', encoding='utf-8') as handle:
+            handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
+            for _, (name, version) in sorted(records.items()):
+              handle.write(f"{name}=={version}\n")
+          PY
+
+      - name: Run smoke tests
+        run: |
+          conda activate agents_unplugged-cpu
+          ENV_NAME=agents_unplugged-cpu python code/smoke_test.py
+
+      - name: Verify core imports
+        run: |
+          conda activate agents_unplugged-cpu
+          python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+          python -c "import langchain; print(f'LangChain: {langchain.__version__}')"
+          python -c "import pandas; print(f'Pandas: {pandas.__version__}')"
+          python -c "import matplotlib; print(f'Matplotlib: {matplotlib.__version__}')"
+          python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+
+      - name: Display installed packages
+        if: always()
+        run: |
+          conda activate agents_unplugged-cpu
+          conda list
+
+  lint-and-validate:
+    name: Lint and Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate requirement files exist
+        run: |
+          test -f environment-minimal-cpu.yml || (echo "Missing environment-minimal-cpu.yml" && exit 1)
+          test -f environment-minimal-gpu.yml || (echo "Missing environment-minimal-gpu.yml" && exit 1)
+          test -f requirements-core.txt || (echo "Missing requirements-core.txt" && exit 1)
+          test -f requirements-langflow.txt || (echo "Missing requirements-langflow.txt" && exit 1)
+          test -f requirements-vllm.txt || (echo "Missing requirements-vllm.txt" && exit 1)
+          echo "✓ All required dependency files present"
+
+      - name: Validate YAML files
+        run: |
+          python -c "import yaml; yaml.safe_load(open('environment-minimal-cpu.yml'))"
+          python -c "import yaml; yaml.safe_load(open('environment-minimal-gpu.yml'))"
+          echo "✓ YAML files are valid"
+
+      - name: Check for common issues
+        run: |
+          # Check that requirements files don't have duplicate entries
+          if [ -f requirements-core.txt ]; then
+            duplicates=$(grep -v '^#' requirements-core.txt | grep -v '^$' | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | sort | uniq -d)
+            if [ -n "$duplicates" ]; then
+              echo "Duplicate packages found in requirements-core.txt:"
+              echo "$duplicates"
+              exit 1
+            fi
+          fi
+          echo "✓ No duplicate dependencies found"
+
+      - name: Verify smoke test is valid Python
+        run: |
+          python -m py_compile code/smoke_test.py
+          echo "✓ Smoke test syntax is valid"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: |
+          pip install pip-audit
+
+      - name: Scan core dependencies for vulnerabilities
+        run: |
+          pip-audit -r requirements-core.txt --desc || true
+
+      - name: Check for secrets in code
+        run: |
+          # Basic check for common secret patterns
+          ! grep -r "sk-[a-zA-Z0-9]\{48\}" --include="*.py" --include="*.sh" . || (echo "Potential API key found!" && exit 1)
+          ! grep -r "AKIA[0-9A-Z]\{16\}" --include="*.py" --include="*.sh" . || (echo "Potential AWS key found!" && exit 1)
+          echo "✓ No obvious secrets detected"
