@@ -6,7 +6,7 @@ Slides, notebooks, code, and assets demonstrating LangChain, LangFlow, LangGraph
 - presentation/Agents_for_Real_slides.md — Presentation deck
 - notebooks/llm_agents_langchain_langflow_demo.ipynb — Main LangChain walkthrough
 - notebooks/mcp_addon_minimal.ipynb — MCP integration demo
-- code/mcp_safe_server.py — Safe MCP server implementation
+- notebooks/safe_mcp_server.py — Safe MCP server implementation
 
 ## Environments & Tooling
 - environment-minimal-gpu.yml — CUDA 12.1 toolchain + PyTorch GPU base

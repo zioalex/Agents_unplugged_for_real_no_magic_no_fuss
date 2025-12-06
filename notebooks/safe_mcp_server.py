@@ -1,6 +1,10 @@
 from __future__ import annotations
+import os
+import re
+import ast
+import operator
+import json
 from mcp.server.fastmcp import FastMCP
-import re, ast, operator, json
 
 OPS = {
     ast.Add: operator.add, ast.Sub: operator.sub,
@@ -33,7 +37,10 @@ def simple_search(query: str, top_k: int = 3):
     scored.sort(key=lambda x: x[0], reverse=True)
     return [doc for _, doc in scored[:top_k]]
 
-mcp = FastMCP("SR-Policies", stateless_http=True, host="127.0.0.1", port=3001)
+# Server configuration via environment variables
+MCP_HOST = os.getenv('MCP_HOST', '127.0.0.1')
+MCP_PORT = int(os.getenv('MCP_PORT', '3001'))
+mcp = FastMCP("SR-Policies", stateless_http=True, host=MCP_HOST, port=MCP_PORT)
 MAX_Q = 200
 BANNED = re.compile(r"(?i)(rm\s|-rf|\bimport\b|__|eval\(|exec\()")
 
@@ -50,7 +57,7 @@ def safe_calc(expression: str) -> str:
         return "error: expression_rejected"
     try:
         return safe_calculator(expression)
-    except Exception as e:
+    except (SyntaxError, ValueError, ZeroDivisionError, TypeError, KeyError) as e:
         return f"error: {e}"
 
 if __name__ == "__main__":
