@@ -264,8 +264,9 @@ This project includes comprehensive GitHub Actions workflows for continuous inte
 
 1. **CI Tests** (`.github/workflows/ci.yml`)
    - Runs on every push and pull request
-   - Tests CPU environment setup and dependency installation
-   - Runs smoke tests to verify core imports
+   - **test-cpu**: Tests CPU environment setup and dependency installation
+   - **test-gpu**: Tests GPU environment with CUDA toolkit (no physical GPU required)
+   - Runs smoke tests to verify core imports on both environments
    - Validates YAML and requirement files
    - Performs basic security scanning
 
@@ -286,7 +287,7 @@ This project includes comprehensive GitHub Actions workflows for continuous inte
 
 For production use, enable branch protection on `main`/`master`:
 
-- Require status checks: `test-cpu`, `lint-and-validate`, `validate-pr`
+- Require status checks: `test-cpu`, `test-gpu`, `lint-and-validate`, `validate-pr`
 - Require pull request reviews (minimum 1 approval)
 - Require conversation resolution before merging
 - Prevent force pushes and deletions

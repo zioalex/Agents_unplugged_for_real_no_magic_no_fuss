@@ -18,6 +18,7 @@ This document describes the recommended GitHub branch protection rules for this 
 - Check: "Require branches to be up to date before merging"
 - Select the following required checks:
   - `test-cpu` (from CI Tests workflow)
+  - `test-gpu` (from CI Tests workflow)
   - `lint-and-validate` (from CI Tests workflow)
   - `validate-pr` (from PR Validation workflow)
   - `size-report` (from PR Validation workflow)
@@ -69,6 +70,7 @@ gh api repos/:owner/:repo/branches/main/protection \
   --method PUT \
   --field required_status_checks[strict]=true \
   --field required_status_checks[contexts][]=test-cpu \
+  --field required_status_checks[contexts][]=test-gpu \
   --field required_status_checks[contexts][]=lint-and-validate \
   --field required_status_checks[contexts][]=validate-pr \
   --field required_pull_request_reviews[required_approving_review_count]=1 \
@@ -86,7 +88,8 @@ This repository has three main workflows:
 ### 1. CI Tests (`ci.yml`)
 - **Trigger:** Push to main/master/develop, PRs to main/master/develop
 - **Jobs:**
-  - `test-cpu`: Sets up conda environment, installs dependencies, runs smoke tests
+  - `test-cpu`: Sets up CPU conda environment, installs dependencies, runs smoke tests
+  - `test-gpu`: Sets up GPU conda environment with CUDA toolkit, verifies GPU packages
   - `lint-and-validate`: Validates configuration files and checks for issues
   - `security-scan`: Scans for secrets and vulnerabilities
 

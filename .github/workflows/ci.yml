@@ -67,6 +67,63 @@ jobs:
         run: |
           conda run -n agents_unplugged-cpu conda list
 
+  test-gpu:
+    name: Test GPU Environment
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: agents_unplugged-gpu
+          python-version: "3.11"
+          use-mamba: true
+
+      - name: Cache conda environment
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.conda/envs
+            ~/.conda/pkgs
+          key: conda-${{ runner.os }}-gpu-${{ hashFiles('environment-minimal-gpu.yml', 'requirements-core.txt', 'requirements-langflow.txt') }}
+          restore-keys: |
+            conda-${{ runner.os }}-gpu-
+
+      - name: Run system checks
+        run: |
+          make doctor
+
+      - name: Setup GPU environment
+        run: |
+          make setup-gpu
+
+      - name: Run smoke tests
+        run: |
+          make test ENV=agents_unplugged-gpu
+
+      - name: Verify GPU packages installed
+        run: |
+          conda run -n agents_unplugged-gpu python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+          conda run -n agents_unplugged-gpu python -c "import torch; print(f'PyTorch CUDA compiled: {torch.version.cuda}')"
+          conda run -n agents_unplugged-gpu python -c "import torch; print(f'CUDA available (no GPU in CI): {torch.cuda.is_available()}')"
+          conda run -n agents_unplugged-gpu python -c "import langchain; print(f'LangChain: {langchain.__version__}')"
+
+      - name: Verify CUDA toolkit installed
+        run: |
+          conda run -n agents_unplugged-gpu bash -c "which nvcc && nvcc --version || echo 'CUDA toolkit check'"
+
+      - name: Display installed packages
+        if: always()
+        run: |
+          conda run -n agents_unplugged-gpu conda list | grep -E "torch|cuda|nvidia" || conda run -n agents_unplugged-gpu conda list
+
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-latest
