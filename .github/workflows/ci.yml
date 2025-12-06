@@ -52,7 +52,14 @@ jobs:
 
       - name: Create conda environment
         run: |
-          mamba env create -f environment-minimal-cpu.yml --force
+          # Check if environment exists (from cache)
+          if conda env list | grep -q "^agents_unplugged-cpu "; then
+            echo "Environment exists (from cache), updating..."
+            mamba env update -f environment-minimal-cpu.yml --prune
+          else
+            echo "Creating new environment..."
+            mamba env create -f environment-minimal-cpu.yml
+          fi
 
       - name: Generate constraints
         run: |
