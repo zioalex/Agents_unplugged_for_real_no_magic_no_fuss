@@ -81,17 +81,17 @@ from importlib import metadata
 from pathlib import Path
 records = {}
 for dist in metadata.distributions():
-		name = dist.metadata.get('Name')
-		version = dist.version
-		if not name or not version:
-				continue
-		normalized = name.strip().replace(' ', '-')
-		records[normalized.lower()] = (normalized, version)
+    name = dist.metadata.get('Name')
+    version = dist.version
+    if not name or not version:
+        continue
+    normalized = name.strip().replace(' ', '-')
+    records[normalized.lower()] = (normalized, version)
 constraints = Path('constraints.txt')
 with constraints.open('w', encoding='utf-8') as handle:
-		handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
-		for _, (name, version) in sorted(records.items()):
-				handle.write(f"{name}=={version}\n")
+    handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
+    for _, (name, version) in sorted(records.items()):
+        handle.write(f"{name}=={version}\n")
 PY
 
 # 3. Install pip layers with the snapshot
