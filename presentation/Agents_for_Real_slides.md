@@ -114,19 +114,21 @@ Takeaway
 
 ---
 
-![bg contain](imgs/github_mcp_servers.png)
-
----
-
 <!-- _header: MCP -->
 
 ## MCP (Model-Context-Protocol)
 
 A proposed standard for agents to safely discover and use tools.
 
-- **Goal**: Create a secure "API layer" for LLMs.
+- **Goal**: Create a *"secure"* API layer for LLMs.
 - **How**: Agents request a manifest of available tools, get credentials, and then call them.
-- **Why**: It enables controlled, observable, and secure agent-to-tool and agent-to-agent communication.
+- **Why**: It enables controlled, observable, and *"secure"* agent-to-tool and agent-to-agent communication.
+
+---
+
+<!-- _header: MCP -->
+
+![bg contain](imgs/github_mcp_servers.png)
 
 ---
 
