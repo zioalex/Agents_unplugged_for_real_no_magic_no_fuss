@@ -1,0 +1,135 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  validate-pr:
+    name: Validate Pull Request
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title format
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+
+          # Check if title is not empty
+          if [ -z "$PR_TITLE" ]; then
+            echo "❌ PR title cannot be empty"
+            exit 1
+          fi
+
+          # Check minimum length
+          if [ ${#PR_TITLE} -lt 10 ]; then
+            echo "❌ PR title too short. Please provide a descriptive title (min 10 chars)"
+            exit 1
+          fi
+
+          echo "✓ PR title is valid: $PR_TITLE"
+
+      - name: Check for merge conflicts
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+
+          # Check if PR branch can be merged cleanly
+          if ! git merge-tree $(git merge-base HEAD origin/${{ github.event.pull_request.base.ref }}) HEAD origin/${{ github.event.pull_request.base.ref }} | grep -q "<<<<<"; then
+            echo "✓ No merge conflicts detected"
+          else
+            echo "❌ Merge conflicts detected. Please resolve conflicts before merging."
+            exit 1
+          fi
+
+      - name: Check file sizes
+        run: |
+          # Check for large files (>10MB) that shouldn't be committed
+          large_files=$(find . -type f -size +10M -not -path "./.git/*" -not -path "./.*" || true)
+
+          if [ -n "$large_files" ]; then
+            echo "❌ Large files detected (>10MB). Consider using Git LFS:"
+            echo "$large_files"
+            exit 1
+          fi
+
+          echo "✓ No large files detected"
+
+      - name: Check for TODO comments in PR
+        run: |
+          # Report TODO/FIXME comments added in this PR (informational only)
+          todos=$(git diff origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E "^\+.*TODO|^\+.*FIXME" | sed 's/^+//' || true)
+
+          if [ -n "$todos" ]; then
+            echo "ℹ️  TODO/FIXME comments added in this PR:"
+            echo "$todos"
+            echo ""
+            echo "Consider creating follow-up issues for these items."
+          else
+            echo "✓ No new TODO/FIXME comments"
+          fi
+
+      - name: Validate dependency changes
+        run: |
+          # Check if dependency files were modified
+          dep_changes=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -E "requirements.*\.(txt|in)|environment.*\.yml" || true)
+
+          if [ -n "$dep_changes" ]; then
+            echo "ℹ️  Dependency files modified:"
+            echo "$dep_changes"
+            echo ""
+            echo "Modified dependency files. Ensure:"
+            echo "1. Both .in and .txt files are updated (if using pip-tools)"
+            echo "2. Version constraints are properly specified"
+            echo "3. Changes are tested on CPU and GPU environments (if applicable)"
+            echo "4. TROUBLESHOOTING.md is updated if new issues are known"
+          else
+            echo "✓ No dependency file changes"
+          fi
+
+  size-report:
+    name: PR Size Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate PR statistics
+        run: |
+          echo "## PR Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count changed files
+          files_changed=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD | wc -l)
+          echo "- **Files changed:** $files_changed" >> $GITHUB_STEP_SUMMARY
+
+          # Count additions and deletions
+          additions=$(git diff --shortstat origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo "0")
+          deletions=$(git diff --shortstat origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo "0")
+          echo "- **Lines added:** $additions" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lines deleted:** $deletions" >> $GITHUB_STEP_SUMMARY
+
+          # Size classification
+          total_changes=$((additions + deletions))
+          if [ $total_changes -lt 100 ]; then
+            size="🟢 Small"
+          elif [ $total_changes -lt 500 ]; then
+            size="🟡 Medium"
+          elif [ $total_changes -lt 1000 ]; then
+            size="🟠 Large"
+          else
+            size="🔴 Extra Large"
+          fi
+          echo "- **PR Size:** $size" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # File type breakdown
+          echo "### Changed File Types" >> $GITHUB_STEP_SUMMARY
+          git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD | sed 's/.*\.//' | sort | uniq -c | sort -rn >> $GITHUB_STEP_SUMMARY

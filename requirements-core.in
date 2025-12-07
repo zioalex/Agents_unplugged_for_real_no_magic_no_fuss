@@ -1,0 +1,29 @@
+# Core dependencies (installed first)
+# These are the essential packages without heavy dependencies
+
+# Data science
+numpy
+pandas
+scipy
+matplotlib
+pillow
+
+# Utilities
+requests
+python-dotenv
+
+# LangChain core (lightweight)
+langchain==1.1.0
+langchain-core
+langchain-openai
+langchain-community
+langchain-ollama
+langchain-mcp-adapters
+
+# MCP
+mcp[cli]
+
+# Jupyter
+jupyter
+ipykernel
+notebook

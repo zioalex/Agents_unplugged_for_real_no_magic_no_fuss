@@ -1,0 +1,4 @@
+# LangFlow and accompanying heavy dependencies
+# Install only after the core requirements are in place
+
+langflow

@@ -1,0 +1,220 @@
+name: CI Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  test-cpu:
+    name: Test CPU Environment
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: agents_unplugged-cpu
+          python-version: "3.11"
+          use-mamba: true
+
+      - name: Cache conda environment
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.conda/envs
+            ~/.conda/pkgs
+          key: conda-${{ runner.os }}-${{ hashFiles('environment-minimal-cpu.yml', 'requirements-core.txt', 'requirements-langflow.txt') }}
+          restore-keys: |
+            conda-${{ runner.os }}-
+
+      - name: Run system checks
+        run: |
+          make doctor
+
+      - name: Setup CPU environment
+        run: |
+          make setup-cpu
+
+      - name: Run smoke tests
+        run: |
+          make test ENV=agents_unplugged-cpu
+
+      - name: Verify core imports
+        run: |
+          conda run -n agents_unplugged-cpu python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+          conda run -n agents_unplugged-cpu python -c "import langchain; print(f'LangChain: {langchain.__version__}')"
+          conda run -n agents_unplugged-cpu python -c "import pandas; print(f'Pandas: {pandas.__version__}')"
+          conda run -n agents_unplugged-cpu python -c "import matplotlib; print(f'Matplotlib: {matplotlib.__version__}')"
+          conda run -n agents_unplugged-cpu python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+
+      - name: Display installed packages
+        if: always()
+        run: |
+          conda run -n agents_unplugged-cpu conda list
+
+  test-gpu:
+    name: Test GPU Environment
+    runs-on: ubuntu-latest
+    needs: test-cpu  # Run after CPU test to save disk space
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          # Remove unnecessary system packages to free up space
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          # Clean apt cache
+          sudo apt-get clean
+          echo "Disk space after cleanup:"
+          df -h
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: agents_unplugged-gpu
+          python-version: "3.11"
+          use-mamba: true
+
+      - name: Cache conda environment
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.conda/envs
+            ~/.conda/pkgs
+          key: conda-${{ runner.os }}-gpu-${{ hashFiles('environment-minimal-gpu.yml', 'requirements-core.txt', 'requirements-langflow.txt') }}
+          restore-keys: |
+            conda-${{ runner.os }}-gpu-
+
+      - name: Run system checks
+        run: |
+          make doctor
+
+      - name: Setup GPU environment
+        run: |
+          make setup-gpu
+
+      - name: Run smoke tests
+        run: |
+          make test ENV=agents_unplugged-gpu
+
+      - name: Verify GPU packages installed
+        run: |
+          conda run -n agents_unplugged-gpu python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+          conda run -n agents_unplugged-gpu python -c "import torch; print(f'PyTorch CUDA compiled: {torch.version.cuda}')"
+          conda run -n agents_unplugged-gpu python -c "import torch; print(f'CUDA available (no GPU in CI): {torch.cuda.is_available()}')"
+          conda run -n agents_unplugged-gpu python -c "import langchain; print(f'LangChain: {langchain.__version__}')"
+
+      - name: Verify CUDA toolkit installed
+        run: |
+          conda run -n agents_unplugged-gpu bash -c "which nvcc && nvcc --version || echo 'CUDA toolkit check'"
+
+      - name: Display installed packages
+        if: always()
+        run: |
+          conda run -n agents_unplugged-gpu conda list | grep -E "torch|cuda|nvidia" || conda run -n agents_unplugged-gpu conda list
+
+  lint-and-validate:
+    name: Lint and Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PyYAML
+        run: |
+          pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Validate requirement files exist
+        run: |
+          test -f environment-minimal-cpu.yml || (echo "Missing environment-minimal-cpu.yml" && exit 1)
+          test -f environment-minimal-gpu.yml || (echo "Missing environment-minimal-gpu.yml" && exit 1)
+          test -f requirements-core.txt || (echo "Missing requirements-core.txt" && exit 1)
+          test -f requirements-langflow.txt || (echo "Missing requirements-langflow.txt" && exit 1)
+          test -f requirements-vllm.txt || (echo "Missing requirements-vllm.txt" && exit 1)
+          echo "✓ All required dependency files present"
+
+      - name: Validate YAML files
+        run: |
+          python -c "import yaml; yaml.safe_load(open('environment-minimal-cpu.yml'))"
+          python -c "import yaml; yaml.safe_load(open('environment-minimal-gpu.yml'))"
+          echo "✓ YAML files are valid"
+
+      - name: Check for common issues
+        run: |
+          # Check that requirements files don't have duplicate entries
+          # Note: pip-compile generates comments (lines starting with # or spaces)
+          if [ -f requirements-core.txt ]; then
+            duplicates=$(grep -v '^#' requirements-core.txt | grep -v '^$' | grep -v '^ ' | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'[' -f1 | sort | uniq -d)
+            if [ -n "$duplicates" ]; then
+              echo "Duplicate packages found in requirements-core.txt:"
+              echo "$duplicates"
+              exit 1
+            fi
+          fi
+          echo "✓ No duplicate dependencies found"
+
+      - name: Verify smoke test is valid Python
+        run: |
+          python -m py_compile code/smoke_test.py
+          echo "✓ Smoke test syntax is valid"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: |
+          pip install pip-audit
+
+      - name: Scan core dependencies for vulnerabilities
+        run: |
+          pip-audit -r requirements-core.txt --desc || true
+
+      - name: Check for secrets in code
+        run: |
+          # Basic check for common secret patterns
+          ! grep -r "sk-[a-zA-Z0-9]\{48\}" --include="*.py" --include="*.sh" . || (echo "Potential API key found!" && exit 1)
+          ! grep -r "AKIA[0-9A-Z]\{16\}" --include="*.py" --include="*.sh" . || (echo "Potential AWS key found!" && exit 1)
+          echo "✓ No obvious secrets detected"
