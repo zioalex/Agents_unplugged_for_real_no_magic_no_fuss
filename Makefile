@@ -1,3 +1,15 @@
+# Export presentation to HTML via Marp
+.PHONY: presentation
+presentation:
+	@echo "Rendering presentation/Agents_for_Real_slides.md to HTML..."
+	npx @marp-team/marp-cli presentation/Agents_for_Real_slides.md --html --allow-local-files -o presentation/Agents_for_Real_slides.html
+
+# Install Marp CLI globally if not present
+.PHONY: presentation-install
+presentation-install:
+	@echo "Checking Marp CLI availability..."
+	@command -v marp >/dev/null 2>&1 && echo "Marp CLI is installed." || (echo "Installing Marp CLI globally..." && npm install -g @marp-team/marp-cli)
+	@echo "Done. You can now run 'make presentation'"
 .PHONY: help setup setup-cpu setup-gpu setup-gpu-vllm clean test jupyter activate doctor update compile-requirements
 
 help:

@@ -19,10 +19,22 @@ color: #333
 **[AI4YOU.SH](https://ai4you.sh)**
 **Alessandro S. © 2025**
 
+<!-- Speaker Notes 
+- Hi everyone — welcome. “Unplugged” means practical and no hype.
+- In the next 25 minutes, we’ll move from simple prompts to reliable, observable agent workflows.
+- Stick around for a short demo and a clear path you can replicate.
+ -->
+
 ---
 <!-- _header: Agent's Framework -->
 
 ![w:1200](imgs/agentic_frameworks_wordcloud_weighted_color_1y_all.png)
+
+<!-- Speaker Notes
+- This word cloud shows just how many agent frameworks exist today.
+- Different names, similar goals: build useful, reliable agent workflows.
+- Today’s path: prototype quickly, then harden for production.
+ -->
 
 ---
 
@@ -30,12 +42,19 @@ color: #333
 
 ## Agents vs. Prompts
 
-**Prompts** are single instructions.  
+**Prompts** are single instructions.
+
 **Agents** are autonomous workers that can:
+
 - **Plan** a sequence of steps.
 - **Use tools** (like code interpreters or APIs).
 - **Observe** outcomes and self-correct.
 - **Complete** the task.
+
+<!-- Speaker Notes
+- Prompts are single-shot instructions. Agents are stateful workers that plan, act with tools, observe, and finish.
+- We’ll look at tool-calling, retries, and shared state — the ingredients of a reliable agent.
+ -->
 
 ---
 
@@ -47,7 +66,11 @@ color: #333
 - **Planner/Executor**: An LLM first creates a multi-step **plan**, then an **executor** carries it out. More robust for complex workflows.
 - **Graph / Multi-Agent**: A state machine where nodes are skills and edges are logic. The most flexible and observable pattern.
 
-<!-- 
+<!-- Speaker Notes 
+- We’ll climb a simple ladder of patterns: ReAct → Planner/Executor → Graph.
+- ReAct is fast; add step limits and parsing checks. Planner/Executor adds structure and retries. Graphs add control and observability.
+- We’ll start simple and escalate, ending with human-in-the-loop and MCP.
+
 Notes:
 - ReAct: Reason + Act → Observation loop; great for short tasks and few tools. Show a single tool call trace from the notebook. Mention guardrails: step limit and parsing errors.
 - Planner/Executor: LLM drafts a plan, executor runs steps, re-plans on failure; better global context but slower. Call out retries, timeouts, and cost tracking.
@@ -71,7 +94,11 @@ Notes:
 
 **Key takeaway:** Prototype visually in **LangFlow**, then harden and deploy with **LangChain** for production-grade reliability.
 
-<!-- 
+<!-- Speaker Notes
+- Prototype visually in LangFlow, then ship with LangChain.
+- Export JSON and call it via REST or load it directly in code.
+- Operational guardrails in both: allow-lists, rate limits, circuit breakers.
+
 Presenter notes — LangChain vs LangFlow
 
 Definitions
@@ -103,6 +130,7 @@ Demo cue
 
 Takeaway
 - Start visual to align on design, then move stable graphs into code for tests, CI, and hardened security.
+
 -->
 
 ---
@@ -111,6 +139,12 @@ Takeaway
 
 
 ![bg contain](./imgs/langchain-vs-langgraph.svg)
+
+<!-- Speaker Notes 
+- On the left: LangChain’s linear chains — great for straightforward sequences.
+- On the right: LangGraph with central state, cycles, branching, tools, and human checks.
+- Notice the control, traceability, and testable steps; observability and risk controls become first-class.
+ -->
 
 ---
 
@@ -124,11 +158,23 @@ A proposed standard for agents to safely discover and use tools.
 - **How**: Agents request a manifest of available tools, get credentials, and then call them.
 - **Why**: It enables controlled, observable, and *"secure"* agent-to-tool and agent-to-agent communication.
 
+<!-- Speaker Notes 
+- MCP is the safe handshake: an agent asks for a manifest, gets scoped credentials, and calls tools with auditability.
+- Think of this as API governance for LLMs — controlled, observable access to tools and even other agents.
+- I’ll highlight where MCP fits into the demo flow.
+ -->
+
 ---
 
 <!-- _header: MCP -->
 
 ![bg contain](imgs/github_mcp_servers.png)
+
+<!-- Speaker Notes
+- The number of MCP servers is growing fast — great momentum.
+- Quality varies, so use trusted servers, scoped credentials, and strict allow-lists.
+- Aim for speed with safety, not unchecked access.
+ -->
 
 ---
 
@@ -144,6 +190,13 @@ A proposed standard for agents to safely discover and use tools.
 | **Hallucinations** | Grounding, retrieval augmentation |
 | **Tool Abuse** | Rate limiting, audit logs |
 
+<!-- Speaker Notes 
+- Here are the top risks and what we do about them.
+- Prompt injection: sanitize inputs and sandbox tools. Data leakage: use RBAC and scoped MCP credentials.
+- Infinite loops and cost: add step limits and circuit breakers. Hallucinations: ground answers with retrieval.
+- Tool abuse: enforce rate limits and keep audit logs.
+ -->
+
 ---
 
 <!-- _class: invert -->
@@ -151,29 +204,64 @@ A proposed standard for agents to safely discover and use tools.
 
 ## **Live Demo**
 
-1.  Build a **ReAct** agent (Retriever + Calculator).
-2.  Call a **LangFlow** flow via its REST API.
-3.  Secure tool access with **MCP**.
+1. Build a **ReAct** agent (Retriever + Calculator).
+2. Call a **LangFlow** flow via its REST API.
+3. Secure tool access with **MCP**.
+
+<!-- Speaker Notes 
+- Three beats to watch: first, a ReAct agent that retrieves and calculates; second, a hand-off to a LangFlow REST flow; third, tools accessed with MCP.
+- I’ll narrate decisions, retries, and guardrails, pausing briefly so you can see traces.
+- By the end, you’ll see a complete path from idea to controlled execution.
+ -->
 
 ---
 
 ![bg contain](imgs/prompt_technique_1.png)
 
+<!-- Speaker Notes 
+- Common prompting techniques: zero-shot, few-shot, chain-of-thought, ReAct, tree-of-thoughts, RAG, self-consistency, prompt chaining, self-reflection, and persona.
+- For the demo, we’ll lean on ReAct and RAG — simple, effective, and observable.
+- Keep these labels in mind; they help name patterns when we review traces.
+ -->
+
 ---
 
 ![bg contain](imgs/prompt_technique_2.png)
+
+<!-- Speaker Notes 
+- Agent-based approaches structure the model’s thinking into clear steps and tool calls.
+- This reduces variance, increases reliability, and makes testing and debugging easier.
+- Prefer small, explicit steps over giant, fragile prompts.
+ -->
 
 ---
 
 ![bg contain](imgs/langchain_deprecation.png)
 
+<!-- Speaker Notes 
+- LangChain’s `AgentType` is deprecated for new scenarios; the recommended path is LangGraph.
+- Graphs offer better tool-calling, persistent state, and human-in-the-loop support.
+- We start simple, then align to graphs as we add control.
+ -->
 ---
 
 ![bg contain](imgs/prompt_engineering_techniques.png)
 
+<!-- Speaker Notes 
+- Prompt engineering still matters, but structure wins.
+- Use concise prompts plus explicit steps, tools, and testable graphs rather than oversized prompts.
+- This keeps systems easier to maintain and reason about.
+ -->
+
 ---
 
 ![bg contain](imgs/langsmith.png)
+
+<!-- Speaker Notes 
+- Agent lifecycle: build, deploy, observe, evaluate, and iterate.
+- Traces and dashboards give visibility; alerts keep production healthy.
+- Evals help catch regressions early.
+ -->
 
 ---
 
@@ -188,6 +276,12 @@ A proposed standard for agents to safely discover and use tools.
 
 **Agents are the next layer of abstraction in software.**
 
+<!-- Speaker Notes 
+- Agents are stateful, tool-using programs — not magic.
+- Start small with ReAct, move to graphs when you need control and observability.
+- This turns LLMs into dependable software.
+ -->
+
 ---
 
 <!-- _header: Links & Resources -->
@@ -198,3 +292,9 @@ A proposed standard for agents to safely discover and use tools.
 - **AI & Anti-Intelligence**: [psychologytoday.com/.../ai-and-the-architecture-of-anti-intelligence](https://www.psychologytoday.com/us/blog/the-digital-self/202507/ai-and-the-architecture-of-anti-intelligence)
 - **LangChain**: [langchain.com](https://www.langchain.com/)
 - **LangFlow**: [langflow.org](https://langflow.org/)
+
+<!-- Speaker Notes
+- Next steps: the Prompting Guide covers techniques; the “anti-intelligence” article gives broader context.
+- Build with LangChain and LangFlow; add LangGraph docs and MCP server lists to your reading.
+- Links included so you can explore further.
+ -->
