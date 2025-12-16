@@ -365,7 +365,7 @@ fastparquet==2024.11.0
     # via langflow
 fastuuid==0.14.0
     # via litellm
-filelock==3.20.0
+filelock==3.20.1
     # via
     #   datasets
     #   huggingface-hub
@@ -2042,7 +2042,6 @@ toonify==1.5.1
     # via scrapegraph-py
 torch==2.5.1
     # via
-    #   -c constraints.txt
     #   accelerate
     #   docling-ibm-models
     #   easyocr
@@ -2050,7 +2049,6 @@ torch==2.5.1
     #   torchvision
 torchvision==0.20.1
     # via
-    #   -c constraints.txt
     #   docling-ibm-models
     #   easyocr
 tqdm==4.67.1
