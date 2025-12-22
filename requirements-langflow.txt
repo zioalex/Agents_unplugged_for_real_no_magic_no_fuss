@@ -901,7 +901,7 @@ markupsafe==3.0.2
     #   langflow
     #   mako
     #   python-liquid
-marshmallow==3.26.1
+marshmallow==3.26.2
     # via
     #   dataclasses-json
     #   unstructured-client
@@ -2042,7 +2042,6 @@ toonify==1.5.1
     # via scrapegraph-py
 torch==2.5.1
     # via
-    #   -c constraints.txt
     #   accelerate
     #   docling-ibm-models
     #   easyocr
@@ -2050,7 +2049,6 @@ torch==2.5.1
     #   torchvision
 torchvision==0.20.1
     # via
-    #   -c constraints.txt
     #   docling-ibm-models
     #   easyocr
 tqdm==4.67.1
