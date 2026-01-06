@@ -16,7 +16,7 @@ aiofiles==24.1.0
     # via langflow-base
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.2
+aiohttp==3.13.3
     # via
     #   aiohttp-retry
     #   astra-assistants
@@ -2042,7 +2042,6 @@ toonify==1.5.1
     # via scrapegraph-py
 torch==2.5.1
     # via
-    #   -c constraints.txt
     #   accelerate
     #   docling-ibm-models
     #   easyocr
@@ -2050,7 +2049,6 @@ torch==2.5.1
     #   torchvision
 torchvision==0.20.1
     # via
-    #   -c constraints.txt
     #   docling-ibm-models
     #   easyocr
 tqdm==4.67.1
