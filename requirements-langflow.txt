@@ -2042,7 +2042,6 @@ toonify==1.5.1
     # via scrapegraph-py
 torch==2.5.1
     # via
-    #   -c constraints.txt
     #   accelerate
     #   docling-ibm-models
     #   easyocr
@@ -2050,7 +2049,6 @@ torch==2.5.1
     #   torchvision
 torchvision==0.20.1
     # via
-    #   -c constraints.txt
     #   docling-ibm-models
     #   easyocr
 tqdm==4.67.1
@@ -2199,7 +2197,7 @@ upstash-vector==0.6.0
     # via langflow
 uritemplate==4.2.0
     # via google-api-python-client
-urllib3==2.5.0
+urllib3==2.6.3
     # via
     #   botocore
     #   clickhouse-connect
