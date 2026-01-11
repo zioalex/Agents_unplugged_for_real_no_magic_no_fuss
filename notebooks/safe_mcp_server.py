@@ -1,5 +1,5 @@
-from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
+from typing import Dict, Any
 import re, ast, operator, json
 
 OPS = {
@@ -38,7 +38,7 @@ MAX_Q = 200
 BANNED = re.compile(r"(?i)(rm\s|-rf|\bimport\b|__|eval\(|exec\()")
 
 @mcp.tool()
-def secure_search_policies(query: str) -> dict:
+def secure_search_policies(query: str) -> Dict[str, Any]:
     if not query or len(query) > MAX_Q or BANNED.search(query or ""):
         return {"error": "query_rejected"}
     hits = simple_search(query, top_k=3)
