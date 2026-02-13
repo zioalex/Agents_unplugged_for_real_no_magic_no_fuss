@@ -144,6 +144,38 @@ Takeaway
 
 ![bg contain](./imgs/langchain-vs-langgraph.svg)
 
+<!-- 
+Presenter notes — LangChain vs LangGraph
+
+The Diagram
+- LEFT (LangChain): Shows a linear chain architecture: Prompt → LLM → Tool/Function → Output. 
+  Sequential, stateless between calls—great for simple, one-shot workflows.
+- RIGHT (LangGraph): Shows a graph-based architecture with a central **State** node connected to Start, Agent, Tool, and Check (decision) nodes.
+  Notice the **return arrows**—nodes read and write back to shared state, enabling cycles and iterative refinement.
+
+Key Differences
+- LangChain (linear): 
+  - Sequential execution, simple prompt chains.
+  - Stateless between calls—each invocation is independent.
+  - Easy to get started; good for straightforward pipelines (RAG, summarization, Q&A).
+- LangGraph (graph):
+  - Stateful execution—state persists across steps and even across sessions.
+  - Supports **cycles** (loops), **branching**, and **conditional logic** (the diamond "Check" node).
+  - Multi-agent orchestration: route between different agent skills or handoff to human review.
+  - Built-in support for **durable execution**, **human-in-the-loop**, and **persistence** (checkpointing).
+
+When to use each
+- Use LangChain when: simple linear workflows, quick prototypes, or when LangGraph's complexity isn't needed.
+- Use LangGraph when: you need loops (ReAct-style reasoning), conditional routing, multi-agent coordination, human approval gates, or long-running durable tasks.
+
+Important: LangChain agents are now built ON TOP of LangGraph
+- You don't need to learn LangGraph for basic agent usage—LangChain's `create_agent()` abstracts it.
+- But if you need fine-grained control, you drop down to LangGraph directly.
+
+Transition line
+- "So LangGraph gives us the control we need for complex workflows. Next, let's talk about how agents discover and use tools securely—that's where MCP comes in."
+-->
+
 ---
 
 <!-- _header: MCP -->
@@ -169,7 +201,7 @@ A proposed standard for agents to safely discover and use tools.
 ![bg contain](imgs/github_mcp_servers.png)
 
 <!-- Speaker Notes
-- The number of MCP servers is growing fast — great momentum.
+- The number of MCP servers is growing fast — great momentum. 3 months ago 40K, today 67.1K results on GitHub.
 - Quality varies, so use trusted servers, scoped credentials, and strict allow-lists.
 - Aim for speed with safety, not unchecked access.
  -->
@@ -205,6 +237,10 @@ A proposed standard for agents to safely discover and use tools.
 1. Build a **ReAct** agent (Retriever + Calculator).
 2. Call a **LangFlow** flow via its REST API.
 3. Secure tool access with **MCP**.
+
+```bash
+./notebooks/start_miniconda_env.sh
+```
 
 <!-- Speaker Notes 
 - Three beats to watch: first, a ReAct agent that retrieves and calculates; second, a hand-off to a LangFlow REST flow; third, tools accessed with MCP.

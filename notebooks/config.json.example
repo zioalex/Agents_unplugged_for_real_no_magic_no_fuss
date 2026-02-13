@@ -1,5 +1,7 @@
 {
-  "API_KEY": "YOUR_OPENAI_API_KEY",
-  "OPENAI_API_BASE": "YOUR:_OPENAI_API_BASE_URL",
-  "LANGFLOW_API_KEY": "YOUR_LANGFLOW_API_KEY"
+  "AZURE_TENANT_ID": "<your-tenant-id>",
+  "AZURE_OPENAI_ENDPOINT": "https://<your-resource-name>.openai.azure.com",
+  "OPENAI_API_BASE": "https://<your-resource-name>.openai.azure.com",
+  "API_KEY": "<your-jwt-bearer-token-or-api-key>",
+  "LANGFLOW_API_KEY": "<your-langflow-api-key>"
 }

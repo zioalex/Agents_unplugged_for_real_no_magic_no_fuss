@@ -27,3 +27,6 @@ mcp[cli]
 jupyter
 ipykernel
 notebook
+
+# Azure OpenAI
+azure-identity
