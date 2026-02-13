@@ -9,6 +9,7 @@ color: #333
 <!-- _class: lead invert -->
 <!-- _header: '' -->
 <!-- _footer: '' -->
+<!-- python -m http.server 8080 -->
 
 # **AI Agents Unplugged**
 ## Live, No Magic, No Fuss
@@ -88,9 +89,9 @@ Notes:
 | | **LangChain** | **LangFlow** |
 |---|---|---|
 | **Paradigm** | Code-first (Python/JS) | Visual (Drag & Drop) |
-| **Use Case** | Production, testing, CI/CD | Prototyping, collaboration |
-| **Core** | LCEL, composable chains | Visual DAGs, REST APIs |
-| **Output** | Services, libraries | Exportable JSON flows |
+| **Use Case** | Production, CI/CD, testing | Prototyping → Production |
+| **Core** | Agents (on LangGraph), LCEL | Visual flows, REST/MCP APIs |
+| **Output** | Services, libraries | APIs, JSON flows |
 
 **Key takeaway:** Prototype visually in **LangFlow**, then harden and deploy with **LangChain** for production-grade reliability.
 
@@ -102,20 +103,23 @@ Notes:
 Presenter notes — LangChain vs LangFlow
 
 Definitions
-- LangChain (code-first): Python-first framework. LCEL = LangChain Expression Language (composable chains, streaming, retries).
-- LangFlow (visual): Drag-and-drop DAG editor for LangChain objects. Export/import JSON. Run flows via REST; can expose endpoints/tools (incl. MCP).
+- LangChain (code-first): Python-first framework. Core abstraction is now **agents built on LangGraph** (durable execution, human-in-the-loop, persistence). LCEL still available for composable chains/streaming.
+  - Deep Agents: "batteries-included" agents with automatic context compression, virtual filesystem, and subagent-spawning.
+- LangFlow (visual): Open-source, Python-based visual editor for AI apps. Drag-and-drop flows, export/import JSON. Run flows via REST; native MCP server/client support.
 
 When to choose each
 - Use LangChain when you need: 
   - Version control + PR review, unit tests, CI/CD, reproducible builds, fine-grained error handling.
-  - Library interop (LangGraph, LangSmith), typed state, and custom tool/security wrappers.
+  - Library interop (LangGraph, LangSmith, Deep Agents), typed state, and custom tool/security wrappers.
+  - Full control over agent orchestration and low-level customization.
 - Use LangFlow when you need:
   - Fast prototyping with non-dev collaborators, quick parameter tuning, and live demos.
-  - Visual DAGs that you can export to JSON and call from services via REST.
+  - Visual DAGs that you can export to JSON and call from services via REST or MCP.
+  - Production deployment via enterprise cloud or self-hosted (LangFlow now supports full prod path).
 
 Deployment paths
 - LangChain: package as a service or notebook; containerize; add observability (LangSmith) and evaluations; store prompts and chains in repo.
-- LangFlow: self-host or local; secure REST with API keys; export JSON and keep it versioned alongside code; treat environment variables as secrets.
+- LangFlow: self-host, local, or enterprise cloud; secure REST/MCP with API keys; export JSON and keep it versioned alongside code; treat environment variables as secrets.
 
 Costs/latency and ops
 - Both call the same models/tools; cost is similar. Visual runtime may add a small network hop for REST.
@@ -123,14 +127,14 @@ Costs/latency and ops
 
 Interop patterns
 - Prototype in LangFlow → export JSON → either invoke via REST or load the exported config into a LangChain service.
+- Use LangFlow as an MCP server to expose flows as tools for other agents/clients.
 - Surface the same tools directly in LangChain and (optionally) via an MCP server for controlled access by multiple agents/clients.
 
 Demo cue
 - Flow today: code-first agent → call a LangFlow flow via REST → show MCP tools and controlled access.
 
 Takeaway
-- Start visual to align on design, then move stable graphs into code for tests, CI, and hardened security.
-
+- Both now support prototyping → production. Start visual to align on design, then move stable graphs into code for tests, CI, and hardened security—or deploy directly from LangFlow cloud.
 -->
 
 ---
@@ -139,12 +143,6 @@ Takeaway
 
 
 ![bg contain](./imgs/langchain-vs-langgraph.svg)
-
-<!-- Speaker Notes 
-- On the left: LangChain’s linear chains — great for straightforward sequences.
-- On the right: LangGraph with central state, cycles, branching, tools, and human checks.
-- Notice the control, traceability, and testable steps; observability and risk controls become first-class.
- -->
 
 ---
 

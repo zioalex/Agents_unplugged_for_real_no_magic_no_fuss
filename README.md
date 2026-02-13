@@ -45,27 +45,52 @@ wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge
 bash Miniforge3-MacOSX-$(uname -m).sh
 ```
 
-Allow the installer to run `conda init` (or run it manually with `conda init <shell>`) and restart your terminal afterwards.
+Make conda initialization optional during installation unless you are using it.
+This means that you have to start the base env manually with `eval "$(/home/vscode/miniforge3/bin/conda shell.YOUR_SHELL_NAME hook)"`
+
+For example, if you are using bash, run `eval "$(/home/vscode/miniforge3/bin/conda shell.bash hook)"` and then `conda activate base` to start using conda.
+
+If you decide to start conda automatically, run `conda init` (or run it manually with `conda init <shell>`) and restart your terminal afterwards.
 
 ## Automated Setup (Recommended)
+
 1. Optional preflight:
-	 ```bash
-	 make doctor
-	 ```
+     ```bash
+     make doctor
+     ```
+
 2. Run the unified installer. It auto-detects GPUs, creates the correct environment, installs pip layers, regenerates constraints.txt, and runs smoke tests.
-	 ```bash
-	 bash setup.sh                    # Auto-detect CPU/GPU
-	 bash setup.sh --cpu              # Force CPU environment (agents_unplugged-cpu)
-	 bash setup.sh --gpu              # Force GPU environment (agents_unplugged-gpu)
-	 bash setup.sh --gpu --with-vllm  # GPU + vLLM (agents_unplugged-gpu-vllm)
-	 ```
-	 Equivalent Makefile targets:
-	 ```bash
-	 make setup
-	 make setup-cpu
-	 make setup-gpu
-	 make setup-gpu-vllm
-	 ```
+
+If you are getting this error during setup:
+
+```bash
+warning  libmamba Failed to load subdir: Download error (60) SSL peer certificate or SSH remote key was not OK [https://conda.anaconda.org/pytorch/linux-64/repodata.json.zst]
+     SSL certificate OpenSSL verify result: unable to get local issuer certificate (20)
+````
+
+You may need to setup .condarc to verify the SSL certs if you are behind a corporate proxy. Like:
+
+```bash
+cat > ~/.condarc << 'EOF'
+ssl_verify: /etc/ssl/certs/ca-certificates.crt
+EOF
+cat ~/.condarc
+No output was produced
+````
+
+     ```bash
+     bash setup.sh                    # Auto-detect CPU/GPU
+     bash setup.sh --cpu              # Force CPU environment (agents_unplugged-cpu)
+     bash setup.sh --gpu              # Force GPU environment (agents_unplugged-gpu)
+     bash setup.sh --gpu --with-vllm  # GPU + vLLM (agents_unplugged-gpu-vllm)
+     ```
+     Equivalent Makefile targets:
+     ```bash
+     make setup
+     make setup-cpu
+     make setup-gpu
+     make setup-gpu-vllm
+     ```
 
 ## Manual Setup (Advanced)
 Replicate the script when you need custom tweaks.
@@ -105,17 +130,17 @@ from importlib import metadata
 from pathlib import Path
 records = {}
 for dist in metadata.distributions():
-		name = dist.metadata.get('Name')
-		version = dist.version
-		if not name or not version:
-				continue
-		normalized = name.strip().replace(' ', '-')
-		records[normalized.lower()] = (normalized, version)
+        name = dist.metadata.get('Name')
+        version = dist.version
+        if not name or not version:
+                continue
+        normalized = name.strip().replace(' ', '-')
+        records[normalized.lower()] = (normalized, version)
 constraints = Path('constraints.txt')
 with constraints.open('w', encoding='utf-8') as handle:
-		handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
-		for _, (name, version) in sorted(records.items()):
-				handle.write(f"{name}=={version}\n")
+        handle.write('# Auto-generated constraints file - DO NOT COMMIT\n')
+        for _, (name, version) in sorted(records.items()):
+                handle.write(f"{name}=={version}\n")
 PY
 python -c "import torch, langchain, langflow"
 ```
@@ -129,9 +154,9 @@ cp notebooks/config.json.example notebooks/config.json
 Example configuration:
 ```json
 {
-	"OPENAI_API_BASE": "https://api.openai.com/v1",
-	"API_KEY": "your_openai_api_key_here",
-	"LANGFLOW_API_KEY": "your_langflow_api_key_here"
+    "OPENAI_API_BASE": "https://api.openai.com/v1",
+    "API_KEY": "your_openai_api_key_here",
+    "LANGFLOW_API_KEY": "your_langflow_api_key_here"
 }
 ```
 
@@ -144,25 +169,25 @@ Open notebooks/llm_agents_langchain_langflow_demo.ipynb, choose your backend (`O
 
 ## Optional Services
 - LangFlow UI:
-	```bash
-	conda activate agents_unplugged-gpu
-	langflow run --host 127.0.0.1 --port 7860
-	```
+    ```bash
+    conda activate agents_unplugged-gpu
+    langflow run --host 127.0.0.1 --port 7860
+    ```
 - vLLM server (GPU only):
-	```bash
-	conda activate agents_unplugged-gpu-vllm
-	vllm serve "swiss-ai/Apertus-8B-Instruct-2509" --gpu-memory-utilization 0.4
-	```
+    ```bash
+    conda activate agents_unplugged-gpu-vllm
+    vllm serve "swiss-ai/Apertus-8B-Instruct-2509" --gpu-memory-utilization 0.4
+    ```
 - Local LLM with Ollama:
-	```bash
-	curl -fsSL https://ollama.com/install.sh | sh
-	ollama pull llama3.1:8b
-	```
+    ```bash
+    curl -fsSL https://ollama.com/install.sh | sh
+    ollama pull llama3.1:8b
+    ```
 - MCP server:
-	```bash
-	conda activate agents_unplugged-gpu
-	python notebooks/safe_mcp_server.py
-	```
+    ```bash
+    conda activate agents_unplugged-gpu
+    python notebooks/safe_mcp_server.py
+    ```
 
 ## Verify Installation
 ```bash
@@ -177,19 +202,19 @@ For comprehensive troubleshooting guidance, see [TROUBLESHOOTING.md](TROUBLESHOO
 
 Quick tips:
 - Clean and retry:
-	```bash
-	make clean
-	make setup
-	```
+    ```bash
+    make clean
+    make setup
+    ```
 - Check GPU visibility:
-	```bash
-	conda activate agents_unplugged-gpu
-	python -c "import torch; print(torch.cuda.is_available())"
-	```
+    ```bash
+    conda activate agents_unplugged-gpu
+    python -c "import torch; print(torch.cuda.is_available())"
+    ```
 - Regenerate constraints after upgrades:
-	```bash
-	make update ENV=agents_unplugged-gpu
-	```
+    ```bash
+    make update ENV=agents_unplugged-gpu
+    ```
 
 ## Makefile Commands
 - make help — List available targets
