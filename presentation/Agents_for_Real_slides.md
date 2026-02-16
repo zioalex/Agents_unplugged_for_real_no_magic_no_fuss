@@ -18,7 +18,7 @@ color: #333
 *25-minute live tour + code*
 
 **[AI4YOU.SH](https://ai4you.sh)**
-**Alessandro S. © 2025**
+**Alessandro S. © 2025/2026**
 
 <!-- Speaker Notes 
 - Hi everyone — welcome. “Unplugged” means practical and no hype.
@@ -138,8 +138,22 @@ Takeaway
 -->
 
 ---
+<!-- _header: Where Does LangGraph Fit? -->
 
-<!-- _header: LangChain vs. LangGraph -->
+## The LangChain Ecosystem
+
+🎨 **LangFlow** — Visual prototyping & REST APIs
+      ↓
+🔗 **LangChain** — Code-first orchestration
+      ↓
+📊 **LangGraph** — Stateful graphs & agents
+      ↓
+🔍 **LangSmith** — Observability & evaluation
+
+---
+
+<!-- _header: Linear Chains vs. Stateful Graphs -->
+
 
 
 ![bg contain](./imgs/langchain-vs-langgraph.svg)
@@ -237,6 +251,7 @@ A proposed standard for agents to safely discover and use tools.
 1. Build a **ReAct** agent (Retriever + Calculator).
 2. Call a **LangFlow** flow via its REST API.
 3. Secure tool access with **MCP**.
+4. **LangGraph**: route between skills, add human review, and observe traces.
 
 ```bash
 ./notebooks/start_miniconda_env.sh
