@@ -20,7 +20,10 @@ color: #333
 **[AI4YOU.SH](https://ai4you.sh)**
 **Alessandro S. © 2025/2026**
 
-<!-- Speaker Notes 
+<!-- Speaker Notes
+
+cd /workspaces/docker-volume/Agents_unplugged_for_real_no_magic_no_fuss/presentation
+python -m http.server 8080
 - Hi everyone — welcome. “Unplugged” means practical and no hype.
 - In the next 25 minutes, we’ll move from simple prompts to reliable, observable agent workflows.
 - Stick around for a short demo and a clear path you can replicate.
